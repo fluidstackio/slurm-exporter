@@ -89,9 +89,53 @@ func TestSlurmParse(t *testing.T) {
 	assert.Equal(t, &PartitionData{Nodes: 2, Cpus: 20, PendingJobs: 1, PendingMaxNodes: 1, Jobs: 1, RunningJobs: 0, HoldJobs: 0, Alloc: 4, Idle: 16}, slurmData.partitions["purple"])
 	assert.Equal(t, &PartitionData{Nodes: 2, Cpus: 32, PendingJobs: 1, PendingMaxNodes: 0, Jobs: 2, RunningJobs: 1, HoldJobs: 1, Alloc: 16, Idle: 16}, slurmData.partitions["green"])
 	assert.Equal(t, len(slurmData.nodes), 3)
-	assert.Equal(t, &NodeData{Cpus: 12, Alloc: 0, Idle: 12}, slurmData.nodes["kind-worker"])
-	assert.Equal(t, &NodeData{Cpus: 24, Alloc: 12, Idle: 12}, slurmData.nodes["kind-worker2"])
-	assert.Equal(t, &NodeData{Cpus: 8, Alloc: 4, Idle: 4}, slurmData.nodes["kind-worker3"])
+	assert.Equal(t, &NodeData{
+		Cpus:  12,
+		Alloc: 0,
+		Idle:  12,
+		nodestates: NodeStates{
+			allocated:   0,
+			completing:  0,
+			down:        0,
+			drain:       0,
+			err:         0,
+			idle:        1,  
+			mixed:       0,
+			reserved:    0,
+		},
+	}, slurmData.nodes["kind-worker"])
+	assert.Equal(t, &NodeData{
+		Cpus:  24,
+		Alloc: 12,
+		Idle:  12,
+		nodestates: NodeStates{
+			allocated:   1,
+			completing:  0,
+			down:        0,
+			drain:       0,
+			err:         0,
+			idle:        0, 
+			maintenance: 0,
+			mixed:       0,
+			reserved:    0,
+		},
+	}, slurmData.nodes["kind-worker2"])
+	assert.Equal(t, &NodeData{
+		Cpus:  8,
+		Alloc: 4,
+		Idle:  4,
+		nodestates: NodeStates{
+			allocated:   0,
+			completing:  1,
+			down:        1,
+			drain:       1,
+			err:         1,
+			idle:        0,  
+			maintenance: 1,
+			mixed:       1,
+			reserved:    1,
+		},
+	}, slurmData.nodes["kind-worker3"])
 	assert.Equal(t, NodeStates{allocated: 1, completing: 1, down: 1, drain: 1, err: 1, idle: 1, maintenance: 1, mixed: 1, reserved: 1}, slurmData.nodestates)
 }
 
@@ -202,7 +246,7 @@ func TestCollect(t *testing.T) {
 		numMetric++
 	}
 	assert.NotNil(t, metric)
-	assert.Equal(t, 41, numMetric)
+	assert.Equal(t, 68, numMetric)
 }
 
 // TestDescribe will test the Prometheus Describe method that implements
@@ -225,7 +269,7 @@ func TestDescribe(t *testing.T) {
 		assert.NotNil(t, desc)
 	}
 	assert.NotNil(t, desc)
-	assert.Equal(t, 26, numDesc)
+	assert.Equal(t, 35, numDesc)
 }
 
 // TestNewSlurmCollector will test that NewSlurmCollector

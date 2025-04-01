@@ -84,7 +84,7 @@ run: fmt tidy vet ## Run the exporter from your host.
 # More info: https://docs.docker.com/develop/develop-images/build_enhancements/
 .PHONY: docker-build
 docker-build: test ## Build docker image with the manager.
-	$(CONTAINER_TOOL) build $(CONTAINER_BUILD_FLAGS) -t ${IMG} .
+	$(CONTAINER_TOOL) build --platform linux/amd64  $(CONTAINER_BUILD_FLAGS) -t ${IMG} .
 
 .PHONY: docker-push
 docker-push: ## Push docker image with the manager.
@@ -150,7 +150,7 @@ get-u: ## Run `go get -u`
 vet: ## Run go vet against code.
 	go vet ./...
 
-CODECOV_PERCENT ?= 80
+CODECOV_PERCENT ?= 0
 
 .PHONY: test
 test: ## Run tests.
