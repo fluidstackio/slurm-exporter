@@ -150,7 +150,7 @@ get-u: ## Run `go get -u`
 vet: ## Run go vet against code.
 	go vet ./...
 
-CODECOV_PERCENT ?= 0
+CODECOV_PERCENT ?= 80
 
 .PHONY: test
 test: ## Run tests.
