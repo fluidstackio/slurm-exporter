@@ -84,8 +84,8 @@ run: fmt tidy vet ## Run the exporter from your host.
 # (i.e. docker build --platform linux/arm64 ). However, you must enable docker buildKit for it.
 # More info: https://docs.docker.com/develop/develop-images/build_enhancements/
 .PHONY: docker-build
-docker-build: ## Build docker image with the manager.
-	$(CONTAINER_TOOL) build $(CONTAINER_BUILD_FLAGS) -t ${IMG} .
+docker-build: test ## Build docker image with the manager.
+	$(CONTAINER_TOOL) build --platform linux/amd64  $(CONTAINER_BUILD_FLAGS) -t ${IMG} .
 
 .PHONY: docker-push
 docker-push: ## Push docker image with the manager.
