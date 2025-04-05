@@ -93,28 +93,28 @@ func TestSlurmParse(t *testing.T) {
 		Cpus:  12,
 		Alloc: 0,
 		Idle:  12,
-		nodestates: NodeStates{
-			allocated:   0,
-			completing:  0,
-			down:        0,
-			drain:       0,
-			err:         0,
-			idle:        1,  
-			mixed:       0,
-			reserved:    0,
+		States: NodeStates{
+			allocated:  0,
+			completing: 0,
+			down:       0,
+			drain:      0,
+			err:        0,
+			idle:       1,
+			mixed:      0,
+			reserved:   0,
 		},
 	}, slurmData.nodes["kind-worker"])
 	assert.Equal(t, &NodeData{
 		Cpus:  24,
 		Alloc: 12,
 		Idle:  12,
-		nodestates: NodeStates{
+		States: NodeStates{
 			allocated:   1,
 			completing:  0,
 			down:        0,
 			drain:       0,
 			err:         0,
-			idle:        0, 
+			idle:        0,
 			maintenance: 0,
 			mixed:       0,
 			reserved:    0,
@@ -124,13 +124,13 @@ func TestSlurmParse(t *testing.T) {
 		Cpus:  8,
 		Alloc: 4,
 		Idle:  4,
-		nodestates: NodeStates{
+		States: NodeStates{
 			allocated:   0,
 			completing:  1,
 			down:        1,
 			drain:       1,
 			err:         1,
-			idle:        0,  
+			idle:        0,
 			maintenance: 1,
 			mixed:       1,
 			reserved:    1,
@@ -282,3 +282,4 @@ func TestNewSlurmCollector(t *testing.T) {
 	assert.NotNil(t, sc)
 	assert.Equal(t, false, sc.perUserMetrics)
 }
+

@@ -38,10 +38,10 @@ type PartitionData struct {
 }
 
 type NodeData struct {
-	Cpus       int32
-	Alloc      int32
-	Idle       int32
-	nodestates NodeStates
+	Cpus   int32
+	Alloc  int32
+	Idle   int32
+	States NodeStates
 }
 
 type NodeStates struct {
@@ -204,39 +204,38 @@ func (r *SlurmCollector) slurmParse(
 		nodeData[key].Cpus = ptr.Deref(n.Cpus, 0)
 		nodeData[key].Alloc = ptr.Deref(n.AllocCpus, 0)
 		nodeData[key].Idle = ptr.Deref(n.AllocIdleCpus, 0)
-		nodesstatuses := NodeStates{}
+		nodeData[key].States = NodeStates{}
 		for _, s := range n.GetStateAsSet().UnsortedList() {
 			switch s {
 			case api.V0041NodeStateALLOCATED:
 				ns.allocated++
-				nodesstatuses.allocated++
+				nodeData[key].States.allocated++
 			case api.V0041NodeStateCOMPLETING:
 				ns.completing++
-				nodesstatuses.completing++
+				nodeData[key].States.completing++
 			case api.V0041NodeStateDOWN:
 				ns.down++
-				nodesstatuses.down++
+				nodeData[key].States.down++
 			case api.V0041NodeStateDRAIN:
 				ns.drain++
-				nodesstatuses.drain++
+				nodeData[key].States.drain++
 			case api.V0041NodeStateERROR:
 				ns.err++
-				nodesstatuses.err++
+				nodeData[key].States.err++
 			case api.V0041NodeStateIDLE:
 				ns.idle++
-				nodesstatuses.idle++
+				nodeData[key].States.idle++
 			case api.V0041NodeStateMAINTENANCE:
 				ns.maintenance++
-				nodesstatuses.maintenance++
+				nodeData[key].States.maintenance++
 			case api.V0041NodeStateMIXED:
 				ns.mixed++
-				nodesstatuses.mixed++
+				nodeData[key].States.mixed++
 			case api.V0041NodeStateRESERVED:
 				ns.reserved++
-				nodesstatuses.reserved++
+				nodeData[key].States.reserved++
 			}
 		}
-		nodeData[key].nodestates = nodesstatuses
 
 		// Update partitionData with per node information as this
 		// is not yet available with the /partitions endpoint.
@@ -431,15 +430,15 @@ func (s *SlurmCollector) Collect(ch chan<- prometheus.Metric) {
 	}
 	ch <- prometheus.MustNewConstMetric(s.nodes, prometheus.GaugeValue, float64(len(slurmData.nodes)))
 	for n := range slurmData.nodes {
-		ch <- prometheus.MustNewConstMetric(s.nodeStateIdle, prometheus.GaugeValue, float64(slurmData.nodes[n].nodestates.idle), n)
-		ch <- prometheus.MustNewConstMetric(s.nodeStateAlloc, prometheus.GaugeValue, float64(slurmData.nodes[n].nodestates.allocated), n)
-		ch <- prometheus.MustNewConstMetric(s.nodeStateCompleting, prometheus.GaugeValue, float64(slurmData.nodes[n].nodestates.completing), n)
-		ch <- prometheus.MustNewConstMetric(s.nodeStateDown, prometheus.GaugeValue, float64(slurmData.nodes[n].nodestates.down), n)
-		ch <- prometheus.MustNewConstMetric(s.nodeStateDrain, prometheus.GaugeValue, float64(slurmData.nodes[n].nodestates.drain), n)
-		ch <- prometheus.MustNewConstMetric(s.nodeStateError, prometheus.GaugeValue, float64(slurmData.nodes[n].nodestates.err), n)
-		ch <- prometheus.MustNewConstMetric(s.nodeStateMaintanance, prometheus.GaugeValue, float64(slurmData.nodes[n].nodestates.maintenance), n)
-		ch <- prometheus.MustNewConstMetric(s.nodeStateMixed, prometheus.GaugeValue, float64(slurmData.nodes[n].nodestates.mixed), n)
-		ch <- prometheus.MustNewConstMetric(s.nodeStateReserved, prometheus.GaugeValue, float64(slurmData.nodes[n].nodestates.reserved), n)
+		ch <- prometheus.MustNewConstMetric(s.nodeStateIdle, prometheus.GaugeValue, float64(slurmData.nodes[n].States.idle), n)
+		ch <- prometheus.MustNewConstMetric(s.nodeStateAlloc, prometheus.GaugeValue, float64(slurmData.nodes[n].States.allocated), n)
+		ch <- prometheus.MustNewConstMetric(s.nodeStateCompleting, prometheus.GaugeValue, float64(slurmData.nodes[n].States.completing), n)
+		ch <- prometheus.MustNewConstMetric(s.nodeStateDown, prometheus.GaugeValue, float64(slurmData.nodes[n].States.down), n)
+		ch <- prometheus.MustNewConstMetric(s.nodeStateDrain, prometheus.GaugeValue, float64(slurmData.nodes[n].States.drain), n)
+		ch <- prometheus.MustNewConstMetric(s.nodeStateError, prometheus.GaugeValue, float64(slurmData.nodes[n].States.err), n)
+		ch <- prometheus.MustNewConstMetric(s.nodeStateMaintanance, prometheus.GaugeValue, float64(slurmData.nodes[n].States.maintenance), n)
+		ch <- prometheus.MustNewConstMetric(s.nodeStateMixed, prometheus.GaugeValue, float64(slurmData.nodes[n].States.mixed), n)
+		ch <- prometheus.MustNewConstMetric(s.nodeStateReserved, prometheus.GaugeValue, float64(slurmData.nodes[n].States.reserved), n)
 		ch <- prometheus.MustNewConstMetric(s.nodeCpus, prometheus.GaugeValue, float64(slurmData.nodes[n].Cpus), n)
 		ch <- prometheus.MustNewConstMetric(s.nodeIdleCpus, prometheus.GaugeValue, float64(slurmData.nodes[n].Idle), n)
 		ch <- prometheus.MustNewConstMetric(s.nodeAllocCpus, prometheus.GaugeValue, float64(slurmData.nodes[n].Alloc), n)
