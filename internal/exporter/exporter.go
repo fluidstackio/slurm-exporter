@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -20,9 +21,11 @@ import (
 )
 
 var (
-	partitionLabel = []string{"partition"}
-	nodeLabel      = []string{"node"}
-	jobLabel       = []string{"user"}
+	partitionLabel  = []string{"partition"}
+	nodeLabel       = []string{"node"}
+	jobLabel        = []string{"user"}
+	jobIDLabel      = []string{"jobid"}
+	nodeReasonLabel = []string{"node", "reason", "user2", "timestamp"}
 )
 
 type PartitionData struct {
@@ -38,10 +41,13 @@ type PartitionData struct {
 }
 
 type NodeData struct {
-	Cpus   int32
-	Alloc  int32
-	Idle   int32
-	States NodeStates
+	Cpus            int32
+	Alloc           int32
+	Idle            int32
+	States          NodeStates
+	Reason          string
+	ReasonSetByUser string
+	ReasonChangedAt int64
 }
 
 type NodeStates struct {
@@ -56,6 +62,13 @@ type NodeStates struct {
 	reserved    int32
 }
 
+type JobStates struct {
+	running    int32
+	pending    int32
+	hold       int32
+	completing int32
+}
+
 type JobData struct {
 	Count   int32
 	Pending int32
@@ -68,6 +81,7 @@ type slurmData struct {
 	nodes      map[string]*NodeData
 	nodestates NodeStates
 	jobs       map[string]*JobData
+	jobstates  map[int32]*JobStates
 }
 
 type SlurmCollector struct {
@@ -109,6 +123,10 @@ type SlurmCollector struct {
 	userPendingJobs          *prometheus.Desc
 	userRunningJobs          *prometheus.Desc
 	userHoldJobs             *prometheus.Desc
+	jobRunning               *prometheus.Desc
+	jobPending               *prometheus.Desc
+	jobHold                  *prometheus.Desc
+	jobCompleting            *prometheus.Desc
 }
 
 // Initialize the slurm client to talk to slurmrestd.
@@ -205,6 +223,12 @@ func (r *SlurmCollector) slurmParse(
 		nodeData[key].Alloc = ptr.Deref(n.AllocCpus, 0)
 		nodeData[key].Idle = ptr.Deref(n.AllocIdleCpus, 0)
 		nodeData[key].States = NodeStates{}
+		nodeData[key].Reason = ptr.Deref(n.Reason, "")
+		nodeData[key].ReasonSetByUser = ptr.Deref(n.ReasonSetByUser, "")
+		nodeData[key].ReasonChangedAt = 0
+		if n.ReasonChangedAt != nil {
+			nodeData[key].ReasonChangedAt = *n.ReasonChangedAt.Number
+		}
 		for _, s := range n.GetStateAsSet().UnsortedList() {
 			switch s {
 			case api.V0041NodeStateALLOCATED:
@@ -252,7 +276,14 @@ func (r *SlurmCollector) slurmParse(
 	// Populate jobData indexed by user with the number of jobs
 	// they have and their various states.
 	jobData := make(map[string]*JobData)
+	// Populate jobDatabyID indexed by jobID with the current state of the job
+	jobDatabyID := make(map[int32]*JobStates)
 	for _, j := range jobs.Items {
+		jobID := ptr.Deref(j.JobId, 0)
+		_, ok := jobDatabyID[jobID]
+		if !ok {
+			jobDatabyID[jobID] = &JobStates{}
+		}
 		userName := ptr.Deref(j.UserName, "")
 		partition := ptr.Deref(j.Partition, "")
 		if _, key := jobData[userName]; !key {
@@ -275,14 +306,20 @@ func (r *SlurmCollector) slurmParse(
 			!isHold {
 			partitionData[partition].PendingJobs++
 			jobData[userName].Pending++
+			jobDatabyID[jobID].pending++
 		}
 		if j.GetStateAsSet().HasAll(api.V0041JobInfoJobStateRUNNING) {
 			partitionData[partition].RunningJobs++
 			jobData[userName].Running++
+			jobDatabyID[jobID].running++
+		}
+		if j.GetStateAsSet().HasAll(api.V0041JobInfoJobStateCOMPLETING) {
+			jobDatabyID[jobID].completing++
 		}
 		if isHold {
 			partitionData[partition].HoldJobs++
 			jobData[userName].Hold++
+			jobDatabyID[jobID].hold++
 		}
 		// Track total pending nodes for a partition for jobs that
 		// meet the criterea below. This exposes metrics that may be
@@ -306,6 +343,7 @@ func (r *SlurmCollector) slurmParse(
 	slurmData.nodes = nodeData
 	slurmData.jobs = jobData
 	slurmData.nodestates = ns
+	slurmData.jobstates = jobDatabyID
 	return slurmData
 }
 
@@ -325,8 +363,8 @@ func NewSlurmCollector(slurmClient client.Client, perUserMetrics bool) *SlurmCol
 		nodes:                    prometheus.NewDesc("slurm_node_total", "Total number of slurm nodes", nil, nil),
 		nodeStateAlloc:           prometheus.NewDesc("slurm_node_allocated", "Node is ALLOCATED", nodeLabel, nil),
 		nodeStateCompleting:      prometheus.NewDesc("slurm_node_completing", "Node is COMPLETING", nodeLabel, nil),
-		nodeStateDown:            prometheus.NewDesc("slurm_node_down", "Node is DOWN", nodeLabel, nil),
-		nodeStateDrain:           prometheus.NewDesc("slurm_node_drain", "Node is DRAIN", nodeLabel, nil),
+		nodeStateDown:            prometheus.NewDesc("slurm_node_down", "Node is DOWN", nodeReasonLabel, nil),
+		nodeStateDrain:           prometheus.NewDesc("slurm_node_drain", "Node is DRAIN", nodeReasonLabel, nil),
 		nodeStateError:           prometheus.NewDesc("slurm_node_error", "Node is in ERROR state", nodeLabel, nil),
 		nodeStateIdle:            prometheus.NewDesc("slurm_node_idle", "Node is IDLE", nodeLabel, nil),
 		nodeStateMaintanance:     prometheus.NewDesc("slurm_node_maintenance", "Node is in MAINTENANCE", nodeLabel, nil),
@@ -348,6 +386,10 @@ func NewSlurmCollector(slurmClient client.Client, perUserMetrics bool) *SlurmCol
 		userPendingJobs:          prometheus.NewDesc("slurm_user_pending_jobs", "Number of pending jobs for a slurm user", jobLabel, nil),
 		userRunningJobs:          prometheus.NewDesc("slurm_user_running_jobs", "Number of running jobs for a slurm user", jobLabel, nil),
 		userHoldJobs:             prometheus.NewDesc("slurm_user_hold_jobs", "Number of hold jobs for a slurm user", jobLabel, nil),
+		jobRunning:               prometheus.NewDesc("slurm_job_running", "Job State Running", jobIDLabel, nil),
+		jobPending:               prometheus.NewDesc("slurm_job_pendings", "Job State Pending", jobIDLabel, nil),
+		jobHold:                  prometheus.NewDesc("slurm_job_hold", "Job State Hold", jobIDLabel, nil),
+		jobCompleting:            prometheus.NewDesc("slurm_job_completing", "Job State Completing", jobIDLabel, nil),
 	}
 }
 
@@ -389,6 +431,10 @@ func (s *SlurmCollector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- s.userRunningJobs
 	ch <- s.userPendingJobs
 	ch <- s.userHoldJobs
+	ch <- s.jobRunning
+	ch <- s.jobPending
+	ch <- s.jobHold
+	ch <- s.jobCompleting
 }
 
 // Called by the Prometheus registry when collecting metrics.
@@ -433,8 +479,8 @@ func (s *SlurmCollector) Collect(ch chan<- prometheus.Metric) {
 		ch <- prometheus.MustNewConstMetric(s.nodeStateIdle, prometheus.GaugeValue, float64(slurmData.nodes[n].States.idle), n)
 		ch <- prometheus.MustNewConstMetric(s.nodeStateAlloc, prometheus.GaugeValue, float64(slurmData.nodes[n].States.allocated), n)
 		ch <- prometheus.MustNewConstMetric(s.nodeStateCompleting, prometheus.GaugeValue, float64(slurmData.nodes[n].States.completing), n)
-		ch <- prometheus.MustNewConstMetric(s.nodeStateDown, prometheus.GaugeValue, float64(slurmData.nodes[n].States.down), n)
-		ch <- prometheus.MustNewConstMetric(s.nodeStateDrain, prometheus.GaugeValue, float64(slurmData.nodes[n].States.drain), n)
+		ch <- prometheus.MustNewConstMetric(s.nodeStateDown, prometheus.GaugeValue, float64(slurmData.nodes[n].States.down), n, slurmData.nodes[n].Reason, slurmData.nodes[n].ReasonSetByUser, strconv.FormatInt(slurmData.nodes[n].ReasonChangedAt, 10))
+		ch <- prometheus.MustNewConstMetric(s.nodeStateDrain, prometheus.GaugeValue, float64(slurmData.nodes[n].States.drain), n, slurmData.nodes[n].Reason, slurmData.nodes[n].ReasonSetByUser, strconv.FormatInt(slurmData.nodes[n].ReasonChangedAt, 10))
 		ch <- prometheus.MustNewConstMetric(s.nodeStateError, prometheus.GaugeValue, float64(slurmData.nodes[n].States.err), n)
 		ch <- prometheus.MustNewConstMetric(s.nodeStateMaintanance, prometheus.GaugeValue, float64(slurmData.nodes[n].States.maintenance), n)
 		ch <- prometheus.MustNewConstMetric(s.nodeStateMixed, prometheus.GaugeValue, float64(slurmData.nodes[n].States.mixed), n)
@@ -460,4 +506,11 @@ func (s *SlurmCollector) Collect(ch chan<- prometheus.Metric) {
 			ch <- prometheus.MustNewConstMetric(s.userHoldJobs, prometheus.GaugeValue, float64(slurmData.jobs[j].Hold), j)
 		}
 	}
+	for j := range slurmData.jobstates {
+		ch <- prometheus.MustNewConstMetric(s.jobRunning, prometheus.GaugeValue, float64(slurmData.jobstates[j].running), strconv.Itoa(int(j)))
+		ch <- prometheus.MustNewConstMetric(s.jobPending, prometheus.GaugeValue, float64(slurmData.jobstates[j].pending), strconv.Itoa(int(j)))
+		ch <- prometheus.MustNewConstMetric(s.jobHold, prometheus.GaugeValue, float64(slurmData.jobstates[j].hold), strconv.Itoa(int(j)))
+		ch <- prometheus.MustNewConstMetric(s.jobCompleting, prometheus.GaugeValue, float64(slurmData.jobstates[j].completing), strconv.Itoa(int(j)))
+	}
+
 }
