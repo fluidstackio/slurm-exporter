@@ -21,7 +21,7 @@ import (
 
 var (
 	partitionLabel = []string{"partition"}
-	nodeLabel      = []string{"node"}
+	nodeLabels     = []string{"node", "hostname"}
 	jobLabel       = []string{"user"}
 )
 
@@ -321,9 +321,9 @@ func NewSlurmCollector(slurmClient client.Client) *SlurmCollector {
 		partitionRunningJobs:     prometheus.NewDesc("slurm_partition_running_jobs", "Number of running jobs in a slurm partition", partitionLabel, nil),
 		partitionHoldJobs:        prometheus.NewDesc("slurm_partition_hold_jobs", "Number of hold jobs in a slurm partition", partitionLabel, nil),
 		nodes:                    prometheus.NewDesc("slurm_node_total", "Total number of slurm nodes", nil, nil),
-		nodeCpus:                 prometheus.NewDesc("slurm_node_cpus", "Number of CPUs in a slurm node", nodeLabel, nil),
-		nodeIdleCpus:             prometheus.NewDesc("slurm_node_idle_cpus", "Number of idle CPUs in a slurm node", nodeLabel, nil),
-		nodeAllocCpus:            prometheus.NewDesc("slurm_node_alloc_cpus", "Number of allocated CPUs in a slurm node", nodeLabel, nil),
+		nodeCpus:                 prometheus.NewDesc("slurm_node_cpus", "Number of CPUs in a slurm node", nodeLabels, nil),
+		nodeIdleCpus:             prometheus.NewDesc("slurm_node_idle_cpus", "Number of idle CPUs in a slurm node", nodeLabels, nil),
+		nodeAllocCpus:            prometheus.NewDesc("slurm_node_alloc_cpus", "Number of allocated CPUs in a slurm node", nodeLabels, nil),
 		allocNodes:               prometheus.NewDesc("slurm_alloc_nodes", "Number of nodes in allocated state", nil, nil),
 		completingNodes:          prometheus.NewDesc("slurm_completing_nodes", "Number of nodes in completing state", nil, nil),
 		downNodes:                prometheus.NewDesc("slurm_down_nodes", "Number of nodes in down state", nil, nil),
@@ -333,15 +333,15 @@ func NewSlurmCollector(slurmClient client.Client) *SlurmCollector {
 		maintenanceNodes:         prometheus.NewDesc("slurm_maintenance_nodes", "Number of nodes in maintenance state", nil, nil),
 		mixedNodes:               prometheus.NewDesc("slurm_mixed_nodes", "Number of nodes in mixed state", nil, nil),
 		reservedNodes:            prometheus.NewDesc("slurm_reserved_nodes", "Number of nodes in reserved state", nil, nil),
-		nodeStateAlloc:           prometheus.NewDesc("slurm_state_allocated", "The allocated state of the node", nodeLabel, nil),
-		nodeStateCompleting:      prometheus.NewDesc("slurm_state_completing", "The completing state of the node", nodeLabel, nil),
-		nodeStateDown:            prometheus.NewDesc("slurm_state_down", "The down state of the node", nodeLabel, nil),
-		nodeStateDrain:           prometheus.NewDesc("slurm_state_drain", "The drain state of the node", nodeLabel, nil),
-		nodeStateError:           prometheus.NewDesc("slurm_state_error", "The error state of the node", nodeLabel, nil),
-		nodeStateIdle:            prometheus.NewDesc("slurm_state_idle", "The idle state of the node", nodeLabel, nil),
-		nodeStateMaintanance:     prometheus.NewDesc("slurm_state_maintenance", "The in state of the node MAINTENANCE", nodeLabel, nil),
-		nodeStateMixed:           prometheus.NewDesc("slurm_state_mixed", "The mixed state of the node", nodeLabel, nil),
-		nodeStateReserved:        prometheus.NewDesc("slurm_state_reserved", "The reserved state of the node", nodeLabel, nil),
+		nodeStateAlloc:           prometheus.NewDesc("slurm_state_allocated", "The allocated state of the node", nodeLabels, nil),
+		nodeStateCompleting:      prometheus.NewDesc("slurm_state_completing", "The completing state of the node", nodeLabels, nil),
+		nodeStateDown:            prometheus.NewDesc("slurm_state_down", "The down state of the node", nodeLabels, nil),
+		nodeStateDrain:           prometheus.NewDesc("slurm_state_drain", "The drain state of the node", nodeLabels, nil),
+		nodeStateError:           prometheus.NewDesc("slurm_state_error", "The error state of the node", nodeLabels, nil),
+		nodeStateIdle:            prometheus.NewDesc("slurm_state_idle", "The idle state of the node", nodeLabels, nil),
+		nodeStateMaintanance:     prometheus.NewDesc("slurm_state_maintenance", "The in state of the node MAINTENANCE", nodeLabels, nil),
+		nodeStateMixed:           prometheus.NewDesc("slurm_state_mixed", "The mixed state of the node", nodeLabels, nil),
+		nodeStateReserved:        prometheus.NewDesc("slurm_state_reserved", "The reserved state of the node", nodeLabels, nil),
 		userJobTotal:             prometheus.NewDesc("slurm_job_total", "Number of jobs for a slurm user", jobLabel, nil),
 		userPendingJobs:          prometheus.NewDesc("slurm_user_pending_jobs", "Number of pending jobs for a slurm user", jobLabel, nil),
 		userRunningJobs:          prometheus.NewDesc("slurm_user_running_jobs", "Number of running jobs for a slurm user", jobLabel, nil),
@@ -428,18 +428,19 @@ func (s *SlurmCollector) Collect(ch chan<- prometheus.Metric) {
 	}
 	ch <- prometheus.MustNewConstMetric(s.nodes, prometheus.GaugeValue, float64(len(slurmData.nodes)))
 	for n := range slurmData.nodes {
-		ch <- prometheus.MustNewConstMetric(s.nodeStateIdle, prometheus.GaugeValue, float64(slurmData.nodes[n].States.idle), n)
-		ch <- prometheus.MustNewConstMetric(s.nodeStateAlloc, prometheus.GaugeValue, float64(slurmData.nodes[n].States.allocated), n)
-		ch <- prometheus.MustNewConstMetric(s.nodeStateCompleting, prometheus.GaugeValue, float64(slurmData.nodes[n].States.completing), n)
-		ch <- prometheus.MustNewConstMetric(s.nodeStateDown, prometheus.GaugeValue, float64(slurmData.nodes[n].States.down), n)
-		ch <- prometheus.MustNewConstMetric(s.nodeStateDrain, prometheus.GaugeValue, float64(slurmData.nodes[n].States.drain), n)
-		ch <- prometheus.MustNewConstMetric(s.nodeStateError, prometheus.GaugeValue, float64(slurmData.nodes[n].States.err), n)
-		ch <- prometheus.MustNewConstMetric(s.nodeStateMaintanance, prometheus.GaugeValue, float64(slurmData.nodes[n].States.maintenance), n)
-		ch <- prometheus.MustNewConstMetric(s.nodeStateMixed, prometheus.GaugeValue, float64(slurmData.nodes[n].States.mixed), n)
-		ch <- prometheus.MustNewConstMetric(s.nodeStateReserved, prometheus.GaugeValue, float64(slurmData.nodes[n].States.reserved), n)
-		ch <- prometheus.MustNewConstMetric(s.nodeCpus, prometheus.GaugeValue, float64(slurmData.nodes[n].Cpus), n)
-		ch <- prometheus.MustNewConstMetric(s.nodeIdleCpus, prometheus.GaugeValue, float64(slurmData.nodes[n].Idle), n)
-		ch <- prometheus.MustNewConstMetric(s.nodeAllocCpus, prometheus.GaugeValue, float64(slurmData.nodes[n].Alloc), n)
+		labelValues := []string{n, n} // node, hostname
+		ch <- prometheus.MustNewConstMetric(s.nodeStateIdle, prometheus.GaugeValue, float64(slurmData.nodes[n].States.idle), labelValues...)
+		ch <- prometheus.MustNewConstMetric(s.nodeStateAlloc, prometheus.GaugeValue, float64(slurmData.nodes[n].States.allocated), labelValues...)
+		ch <- prometheus.MustNewConstMetric(s.nodeStateCompleting, prometheus.GaugeValue, float64(slurmData.nodes[n].States.completing), labelValues...)
+		ch <- prometheus.MustNewConstMetric(s.nodeStateDown, prometheus.GaugeValue, float64(slurmData.nodes[n].States.down), labelValues...)
+		ch <- prometheus.MustNewConstMetric(s.nodeStateDrain, prometheus.GaugeValue, float64(slurmData.nodes[n].States.drain), labelValues...)
+		ch <- prometheus.MustNewConstMetric(s.nodeStateError, prometheus.GaugeValue, float64(slurmData.nodes[n].States.err), labelValues...)
+		ch <- prometheus.MustNewConstMetric(s.nodeStateMaintanance, prometheus.GaugeValue, float64(slurmData.nodes[n].States.maintenance), labelValues...)
+		ch <- prometheus.MustNewConstMetric(s.nodeStateMixed, prometheus.GaugeValue, float64(slurmData.nodes[n].States.mixed), labelValues...)
+		ch <- prometheus.MustNewConstMetric(s.nodeStateReserved, prometheus.GaugeValue, float64(slurmData.nodes[n].States.reserved), labelValues...)
+		ch <- prometheus.MustNewConstMetric(s.nodeCpus, prometheus.GaugeValue, float64(slurmData.nodes[n].Cpus), labelValues...)
+		ch <- prometheus.MustNewConstMetric(s.nodeIdleCpus, prometheus.GaugeValue, float64(slurmData.nodes[n].Idle), labelValues...)
+		ch <- prometheus.MustNewConstMetric(s.nodeAllocCpus, prometheus.GaugeValue, float64(slurmData.nodes[n].Alloc), labelValues...)
 	}
 	ch <- prometheus.MustNewConstMetric(s.allocNodes, prometheus.GaugeValue, float64(slurmData.nodestates.allocated))
 	ch <- prometheus.MustNewConstMetric(s.completingNodes, prometheus.GaugeValue, float64(slurmData.nodestates.completing))
