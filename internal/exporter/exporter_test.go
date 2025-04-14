@@ -285,3 +285,4 @@ func TestNewSlurmCollector(t *testing.T) {
 	assert.NotNil(t, sc)
 	assert.Equal(t, false, sc.perUserMetrics)
 }
+
