@@ -280,8 +280,7 @@ func (r *SlurmCollector) slurmParse(
 	jobDatabyID := make(map[int32]*JobStates)
 	for _, j := range jobs.Items {
 		jobID := ptr.Deref(j.JobId, 0)
-		_, ok := jobDatabyID[jobID]
-		if !ok {
+		if _, ok := jobDatabyID[jobID]; !ok {
 			jobDatabyID[jobID] = &JobStates{}
 		}
 		userName := ptr.Deref(j.UserName, "")
