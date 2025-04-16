@@ -156,6 +156,12 @@ var (
 			},
 		},
 	}
+
+	numberVal   = int64(0)
+	emptyStruct = api.V0041Uint64NoValStruct{
+		Number: &numberVal,
+	}
+
 	nodeA = &slurmtypes.V0041Node{
 		V0041Node: api.V0041Node{
 			Name:          ptr.To("kind-worker"),
@@ -180,13 +186,16 @@ var (
 	}
 	nodeC = &slurmtypes.V0041Node{
 		V0041Node: api.V0041Node{
-			Name:          ptr.To("kind-worker3"),
-			Address:       ptr.To("10.244.1.3"),
-			Partitions:    ptr.To(nodePartitionSetPurpleGreen.UnsortedList()),
-			State:         ptr.To(nodeStateSetMisc.UnsortedList()),
-			Cpus:          ptr.To[int32](8),
-			AllocCpus:     ptr.To[int32](4),
-			AllocIdleCpus: ptr.To[int32](4),
+			Name:            ptr.To("kind-worker3"),
+			Address:         ptr.To("10.244.1.3"),
+			Partitions:      ptr.To(nodePartitionSetPurpleGreen.UnsortedList()),
+			State:           ptr.To(nodeStateSetMisc.UnsortedList()),
+			Cpus:            ptr.To[int32](8),
+			AllocCpus:       ptr.To[int32](4),
+			AllocIdleCpus:   ptr.To[int32](4),
+			Reason:          ptr.To(""),
+			ReasonSetByUser: ptr.To(""),
+			ReasonChangedAt: ptr.To[api.V0041Uint64NoValStruct](emptyStruct),
 		},
 	}
 )
