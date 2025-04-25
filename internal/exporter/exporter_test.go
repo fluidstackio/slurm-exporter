@@ -103,6 +103,8 @@ func TestSlurmParse(t *testing.T) {
 			mixed:      0,
 			reserved:   0,
 		},
+		unavailable:   0,
+		CombinedState: "idle",
 	}, slurmData.nodes["kind-worker"])
 	assert.Equal(t, &NodeData{
 		Cpus:  24,
@@ -119,6 +121,8 @@ func TestSlurmParse(t *testing.T) {
 			mixed:       0,
 			reserved:    0,
 		},
+		unavailable:   0,
+		CombinedState: "allocated",
 	}, slurmData.nodes["kind-worker2"])
 	assert.Equal(t, &NodeData{
 		Cpus:  8,
@@ -135,6 +139,8 @@ func TestSlurmParse(t *testing.T) {
 			mixed:       1,
 			reserved:    1,
 		},
+		unavailable:     0,
+		CombinedState:   "completing+down+drain+err+maintenance+mixed+reserved",
 		Reason:          "",
 		ReasonSetByUser: "",
 		ReasonChangedAt: 0,
@@ -249,7 +255,7 @@ func TestCollect(t *testing.T) {
 		numMetric++
 	}
 	assert.NotNil(t, metric)
-	assert.Equal(t, 80, numMetric)
+	assert.Equal(t, 167, numMetric)
 }
 
 // TestDescribe will test the Prometheus Describe method that implements
@@ -272,7 +278,7 @@ func TestDescribe(t *testing.T) {
 		assert.NotNil(t, desc)
 	}
 	assert.NotNil(t, desc)
-	assert.Equal(t, 39, numDesc)
+	assert.Equal(t, 82, numDesc)
 }
 
 // TestNewSlurmCollector will test that NewSlurmCollector
@@ -285,4 +291,3 @@ func TestNewSlurmCollector(t *testing.T) {
 	assert.NotNil(t, sc)
 	assert.Equal(t, false, sc.perUserMetrics)
 }
-
