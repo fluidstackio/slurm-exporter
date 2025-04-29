@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ### Added
 
 - Added option to toggle `--per-user-metrics`.
+- Added option to set `--cache-freq`.
 
 ### Fixed
 

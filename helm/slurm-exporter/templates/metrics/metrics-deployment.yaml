@@ -53,6 +53,10 @@ spec:
             {{- with .Values.exporter.enableUserStats }}
             - --per-user-metrics={{- . }}
             {{- end }}{{- /* with .Values.exporter.enableUserStats */}}
+            {{- with .Values.exporter.cacheFrequency }}
+            - --cache-freq
+            - {{ . }}
+            {{- end }}{{- /* with .Values.exporter.cacheFrequency */}}
           ports:
             - name: metrics
               containerPort: {{ include "slurm-exporter.port" . }}
