@@ -6,8 +6,11 @@ package exporter
 import (
 	"context"
 	"errors"
+	"fmt"
+	"math"
 	"os"
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -26,7 +29,7 @@ var (
 	partitionLabel     = []string{"partition"}
 	nodeLabels         = []string{"node", "hostname"}
 	jobLabel           = []string{"user"}
-	jobIDLabel         = []string{"jobid"}
+	jobIDLabel         = []string{"jobid", "hostname"}
 	combinedStateLabel = []string{"node", "hostname", "combinedState"}
 	nodeReasonLabel    = []string{"node", "hostname", "reason", "user2", "timestamp"}
 )
@@ -93,6 +96,7 @@ type JobStates struct {
 	pending    int32
 	hold       int32
 	completing int32
+	nodes      string
 }
 
 type JobData struct {
@@ -100,6 +104,7 @@ type JobData struct {
 	Pending int32
 	Running int32
 	Hold    int32
+	Cpus    int32
 }
 
 type slurmData struct {
@@ -168,6 +173,7 @@ type SlurmCollector struct {
 	mixedNodes               *prometheus.Desc
 	reservedNodes            *prometheus.Desc
 	userJobTotal             *prometheus.Desc
+	userCPUsTotal            *prometheus.Desc
 	userPendingJobs          *prometheus.Desc
 	userRunningJobs          *prometheus.Desc
 	userHoldJobs             *prometheus.Desc
@@ -196,6 +202,72 @@ type SlurmCollector struct {
 	resumeNodes              *prometheus.Desc
 	undrainNodes             *prometheus.Desc
 	unknownNodes             *prometheus.Desc
+}
+
+func splitOutsideBrackets(input string) []string {
+	var result []string
+	bracketDepth := 0
+	start := 0
+
+	for i, char := range input {
+		switch char {
+		case '[':
+			bracketDepth++
+		case ']':
+			bracketDepth--
+		case ',':
+			if bracketDepth == 0 {
+				part := strings.TrimSpace(input[start:i])
+				result = append(result, part)
+				start = i + 1
+			}
+		}
+	}
+
+	if start < len(input) {
+		result = append(result, strings.TrimSpace(input[start:]))
+	}
+	return result
+}
+
+// Expand items inside brackets, handling ranges and mixed types
+func expandBracketed(base string, content string) []string {
+	var expanded []string
+
+	items := strings.Split(content, ",")
+	for _, item := range items {
+		item = strings.TrimSpace(item)
+
+		if strings.Contains(item, "-") {
+			parts := strings.Split(item, "-")
+			if len(parts) != 2 {
+				// malformed range, skip or log
+				continue
+			}
+
+			startStr := parts[0]
+			endStr := parts[1]
+
+			// Check if both sides are numeric
+			startNum, errStart := strconv.Atoi(startStr)
+			endNum, errEnd := strconv.Atoi(endStr)
+
+			if errStart == nil && errEnd == nil {
+				// Keep the width of the largest side (to preserve padding)
+				width := int(math.Max(float64(len(startStr)), float64(len(endStr))))
+				for i := startNum; i <= endNum; i++ {
+					expanded = append(expanded, fmt.Sprintf("%s%0*d", base, width, i))
+				}
+			} else {
+				// If not numeric, treat as literal — not expanding
+				expanded = append(expanded, fmt.Sprintf("%s%s", base, item))
+			}
+		} else {
+			// Just append directly
+			expanded = append(expanded, fmt.Sprintf("%s%s", base, item))
+		}
+	}
+	return expanded
 }
 
 func GetActiveStates(states NodeStates) string {
@@ -482,6 +554,27 @@ func (r *SlurmCollector) slurmParse(
 			jobData[userName].Hold++
 			jobDatabyID[jobID].hold++
 		}
+		jobData[userName].Cpus += *j.Cpus.Number
+		if j.Nodes != nil {
+			nodes := *j.Nodes
+			parts := splitOutsideBrackets(nodes)
+			var hostnames []string
+
+			// Match something like "base[...]"
+			re := regexp.MustCompile(`^([a-zA-Z0-9\-_]+)\[(.*?)\]$`)
+
+			for _, part := range parts {
+				if matches := re.FindStringSubmatch(part); len(matches) == 3 {
+					base := matches[1]
+					content := matches[2]
+					hostnames = append(hostnames, expandBracketed(base, content)...)
+				} else {
+					// Standalone hostname — use as-is
+					hostnames = append(hostnames, part)
+				}
+			}
+			jobDatabyID[jobID].nodes = strings.Join(hostnames, ",")
+		}
 		// Track total pending nodes for a partition for jobs that
 		// meet the criteria below. This exposes metrics that may be
 		// used for autoscaling. Jobs with an eligible date greater
@@ -587,6 +680,7 @@ func NewSlurmCollector(slurmClient client.Client, perUserMetrics bool) *SlurmCol
 		nodeStateMixed:           prometheus.NewDesc("slurm_state_mixed2", "The mixed state of the node", nodeLabels, nil),
 		nodeStateReserved:        prometheus.NewDesc("slurm_state_reserved2", "The reserved state of the node", nodeLabels, nil),
 		userJobTotal:             prometheus.NewDesc("slurm_job_total", "Number of jobs for a slurm user", jobLabel, nil),
+		userCPUsTotal:            prometheus.NewDesc("slurm_user_cpus", "Number of cpus for a slurm user", jobLabel, nil),
 		userPendingJobs:          prometheus.NewDesc("slurm_user_pending_jobs", "Number of pending jobs for a slurm user", jobLabel, nil),
 		userRunningJobs:          prometheus.NewDesc("slurm_user_running_jobs", "Number of running jobs for a slurm user", jobLabel, nil),
 		userHoldJobs:             prometheus.NewDesc("slurm_user_hold_jobs", "Number of hold jobs for a slurm user", jobLabel, nil),
@@ -675,6 +769,7 @@ func (s *SlurmCollector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- s.mixedNodes
 	ch <- s.reservedNodes
 	ch <- s.userJobTotal
+	ch <- s.userCPUsTotal
 	ch <- s.userRunningJobs
 	ch <- s.userPendingJobs
 	ch <- s.userHoldJobs
@@ -792,6 +887,7 @@ func (s *SlurmCollector) Collect(ch chan<- prometheus.Metric) {
 
 	if s.perUserMetrics {
 		for j := range slurmData.jobs {
+			ch <- prometheus.MustNewConstMetric(s.userCPUsTotal, prometheus.GaugeValue, float64(slurmData.jobs[j].Cpus), j)
 			ch <- prometheus.MustNewConstMetric(s.userJobTotal, prometheus.GaugeValue, float64(slurmData.jobs[j].Count), j)
 			ch <- prometheus.MustNewConstMetric(s.userPendingJobs, prometheus.GaugeValue, float64(slurmData.jobs[j].Pending), j)
 			ch <- prometheus.MustNewConstMetric(s.userRunningJobs, prometheus.GaugeValue, float64(slurmData.jobs[j].Running), j)
@@ -799,10 +895,10 @@ func (s *SlurmCollector) Collect(ch chan<- prometheus.Metric) {
 		}
 	}
 	for j := range slurmData.jobstates {
-		ch <- prometheus.MustNewConstMetric(s.jobRunning, prometheus.GaugeValue, float64(slurmData.jobstates[j].running), strconv.Itoa(int(j)))
-		ch <- prometheus.MustNewConstMetric(s.jobPending, prometheus.GaugeValue, float64(slurmData.jobstates[j].pending), strconv.Itoa(int(j)))
-		ch <- prometheus.MustNewConstMetric(s.jobHold, prometheus.GaugeValue, float64(slurmData.jobstates[j].hold), strconv.Itoa(int(j)))
-		ch <- prometheus.MustNewConstMetric(s.jobCompleting, prometheus.GaugeValue, float64(slurmData.jobstates[j].completing), strconv.Itoa(int(j)))
+		ch <- prometheus.MustNewConstMetric(s.jobRunning, prometheus.GaugeValue, float64(slurmData.jobstates[j].running), strconv.Itoa(int(j)), slurmData.jobstates[j].nodes)
+		ch <- prometheus.MustNewConstMetric(s.jobPending, prometheus.GaugeValue, float64(slurmData.jobstates[j].pending), strconv.Itoa(int(j)), slurmData.jobstates[j].nodes)
+		ch <- prometheus.MustNewConstMetric(s.jobHold, prometheus.GaugeValue, float64(slurmData.jobstates[j].hold), strconv.Itoa(int(j)), slurmData.jobstates[j].nodes)
+		ch <- prometheus.MustNewConstMetric(s.jobCompleting, prometheus.GaugeValue, float64(slurmData.jobstates[j].completing), strconv.Itoa(int(j)), slurmData.jobstates[j].nodes)
 	}
 
 }
