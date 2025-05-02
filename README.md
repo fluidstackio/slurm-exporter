@@ -16,7 +16,7 @@ as a helm dependency of the slurm helm chart.
 ## Prerequisites:
 
 Install `kube-prometheus-stack` for metrics collection and observation.
-Prometheus is also used as an extenstion API server so custom Slurm metrics may
+Prometheus is also used as an extension API server so custom Slurm metrics may
 be used with autoscaling.
 
 ```sh

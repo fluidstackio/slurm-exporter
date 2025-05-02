@@ -266,7 +266,7 @@ func (r *SlurmCollector) slurmParse(
 			jobData[userName].Hold++
 		}
 		// Track total pending nodes for a partition for jobs that
-		// meet the criterea below. This exposes metrics that may be
+		// meet the criteria below. This exposes metrics that may be
 		// used for autoscaling. Jobs with an eligible date greater
 		// than one year are ignored.
 		eligibleTimeNoVal := ptr.Deref(j.EligibleTime, api.V0041Uint64NoValStruct{})
@@ -301,7 +301,7 @@ func NewSlurmCollector(slurmClient client.Client, perUserMetrics bool) *SlurmCol
 		partitionJobs:            prometheus.NewDesc("slurm_partition_jobs", "Number of allocated CPUs in a slurm partition", partitionLabel, nil),
 		partitionPendingJobs:     prometheus.NewDesc("slurm_partition_pending_jobs", "Number of pending jobs in a slurm partition", partitionLabel, nil),
 		partitionMaxPendingNodes: prometheus.NewDesc("slurm_partition_max_pending_nodes", "Number of nodes pending for the largest job in the partition", partitionLabel, nil),
-		partitionRunningJobs:     prometheus.NewDesc("slurm_partition_running_jobs", "Number of runnning jobs in a slurm partition", partitionLabel, nil),
+		partitionRunningJobs:     prometheus.NewDesc("slurm_partition_running_jobs", "Number of running jobs in a slurm partition", partitionLabel, nil),
 		partitionHoldJobs:        prometheus.NewDesc("slurm_partition_hold_jobs", "Number of hold jobs in a slurm partition", partitionLabel, nil),
 		nodes:                    prometheus.NewDesc("slurm_node_total", "Total number of slurm nodes", nil, nil),
 		nodeCpus:                 prometheus.NewDesc("slurm_node_cpus", "Number of CPUs in a slurm node", nodeLabel, nil),
