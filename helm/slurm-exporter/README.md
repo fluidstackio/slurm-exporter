@@ -15,6 +15,7 @@ Helm Chart for Slurm Prometheus Exporter
 | exporter.image.repository | string | `"ghcr.io/slinkyproject/slurm-exporter"` |  Set the image repository to use. |
 | exporter.image.tag | string | The chart Version. |  Set the image tag to use. |
 | exporter.imagePullPolicy | string | `"IfNotPresent"` |  Set the image pull policy. |
+| exporter.logLevel | string | `"info"` |  Set the log level by string (e.g. error, info, debug) or number (e.g. 1..5). |
 | exporter.priorityClassName | string | `""` |  Set the priority class to use. Ref: https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/#priorityclass |
 | exporter.replicas | integer | `1` |  Set the number of replicas to deploy. |
 | exporter.resources | object | `{}` |  Set container resource requests and limits for Kubernetes Pod scheduling. Ref: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#resource-requests-and-limits-of-pod-and-container |

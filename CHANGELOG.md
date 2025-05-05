@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 
 - Added option to toggle `--per-user-metrics`.
 - Added option to set `--cache-freq`.
+- Added option to set `--zap-log-level`.
 
 ### Fixed
 

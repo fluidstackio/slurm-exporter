@@ -56,6 +56,10 @@ exporter:
   # The name of the secret containing a token to communicate with the Slurm REST API.
   secretName: ""
   #
+  # -- (string)
+  # Set the log level by string (e.g. error, info, debug) or number (e.g. 1..5).
+  logLevel: info
+  #
   # --(bool)
   # Enable per-user metrics data.
   # Enabling this could significantly increase prometheus storage requirements.
