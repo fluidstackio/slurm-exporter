@@ -32,7 +32,7 @@ exporter:
   # Enables metrics collection.
   enabled: true
   #
-  #
+  # -- (string)
   # The name of the secret containing a token to communicate with the Slurm REST API.
   secretName: ""
   #

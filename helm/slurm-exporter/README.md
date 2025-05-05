@@ -16,7 +16,7 @@ Helm Chart for Slurm Prometheus Exporter
 | exporter.priorityClassName | string | `""` |  Set the priority class to use. Ref: https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/#priorityclass |
 | exporter.replicas | integer | `1` |  Set the number of replicas to deploy. |
 | exporter.resources | object | `{}` |  Set container resource requests and limits for Kubernetes Pod scheduling. Ref: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#resource-requests-and-limits-of-pod-and-container |
-| exporter.secretName | string | `""` |  |
+| exporter.secretName | string | `""` |  The name of the secret containing a token to communicate with the Slurm REST API. |
 | exporter.serviceMonitor.enabled | bool | `true` |  |
 | exporter.serviceMonitor.endpoints[0].interval | string | `"10s"` |  |
 | exporter.serviceMonitor.endpoints[0].path | string | `"/metrics"` |  |
