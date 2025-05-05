@@ -15,16 +15,16 @@ func Test_parseFlags(t *testing.T) {
 	flags := Flags{}
 	os.Args = []string{"test", "--metrics-bind-address", "8081", "--server", "foo", "--cache-freq", "10s", "--per-user-metrics", "true"}
 	parseFlags(&flags)
-	if flags.metricsAddr != "8081" {
-		t.Errorf("Test_parseFlags() metricsAddr = %v, want %v", flags.metricsAddr, "8081")
+	if flags.MetricsAddr != "8081" {
+		t.Errorf("Test_parseFlags() MetricsAddr = %v, want %v", flags.MetricsAddr, "8081")
 	}
-	if flags.server != "foo" {
-		t.Errorf("Test_parseFlags() server = %v, want %v", flags.server, "foo")
+	if flags.Server != "foo" {
+		t.Errorf("Test_parseFlags() Server = %v, want %v", flags.Server, "foo")
 	}
-	if flags.cacheFreq != time.Second*10 {
-		t.Errorf("Test_parseFlags() cacheFreq = %v, want %v", flags.cacheFreq, time.Second*10)
+	if flags.CacheFreq != time.Second*10 {
+		t.Errorf("Test_parseFlags() CacheFreq = %v, want %v", flags.CacheFreq, time.Second*10)
 	}
-	if !flags.perUserMetrics {
-		t.Errorf("Test_parseFlags() perUserMetrics = %v, want %v", flags.perUserMetrics, false)
+	if !flags.PerUserMetrics {
+		t.Errorf("Test_parseFlags() PerUserMetrics = %v, want %v", flags.PerUserMetrics, false)
 	}
 }

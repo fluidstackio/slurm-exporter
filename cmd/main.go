@@ -26,33 +26,33 @@ var (
 
 // Input flags to the command
 type Flags struct {
-	metricsAddr    string
-	server         string
-	cacheFreq      time.Duration
-	perUserMetrics bool
+	MetricsAddr    string
+	Server         string
+	CacheFreq      time.Duration
+	PerUserMetrics bool
 }
 
 func parseFlags(flags *Flags) {
 	flag.StringVar(
-		&flags.metricsAddr,
+		&flags.MetricsAddr,
 		"metrics-bind-address",
 		":8080",
 		"The address the metric endpoint binds to.",
 	)
 	flag.StringVar(
-		&flags.server,
+		&flags.Server,
 		"server",
 		"http://slurm-restapi:6820",
 		"The server url of the cluster for the exporter to monitor.",
 	)
 	flag.DurationVar(
-		&flags.cacheFreq,
+		&flags.CacheFreq,
 		"cache-freq",
 		5*time.Second,
 		"The amount of time to wait between updating the slurm restapi cache. Must be greater than 1s and must be parsable by time.ParseDuration.",
 	)
 	flag.BoolVar(
-		&flags.perUserMetrics,
+		&flags.PerUserMetrics,
 		"per-user-metrics",
 		false,
 		"Enable per-user metrics data. Enabling this could significantly increase prometheus storage requirements.",
@@ -68,23 +68,24 @@ func main() {
 	opts.BindFlags(flag.CommandLine)
 	parseFlags(&flags)
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
+	setupLog.Info("With", "Flags", flags)
 
-	if flags.cacheFreq <= 1*time.Second {
+	if flags.CacheFreq <= 1*time.Second {
 		setupLog.Error(errors.New("config"), "Must use a cache-freq > 1s.")
 		os.Exit(1)
 	}
 
-	slurmClient, err := exporter.NewSlurmClient(flags.server, flags.cacheFreq)
+	slurmClient, err := exporter.NewSlurmClient(flags.Server, flags.CacheFreq)
 	if err != nil {
 		setupLog.Error(err, "could not create slurm client")
 		os.Exit(1)
 	}
-	slurmCollector := exporter.NewSlurmCollector(slurmClient, flags.perUserMetrics)
+	slurmCollector := exporter.NewSlurmCollector(slurmClient, flags.PerUserMetrics)
 	prometheus.MustRegister(slurmCollector)
 
 	setupLog.Info("starting exporter")
 	http.Handle("/metrics", promhttp.Handler())
-	if err := http.ListenAndServe(flags.metricsAddr, nil); err != nil {
+	if err := http.ListenAndServe(flags.MetricsAddr, nil); err != nil {
 		setupLog.Error(err, "problem running exporter")
 		os.Exit(1)
 	}
