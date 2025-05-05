@@ -50,6 +50,9 @@ spec:
           args:
             - --server
             - {{ printf "http://%s.%s:%s" (include "slurm-exporter.restapi.name" .) (include "slurm-exporter.namespace" .) (include "slurm-exporter.restapi.port" .) }}
+            {{- with .Values.exporter.enableUserStats }}
+            - --per-user-metrics={{- . }}
+            {{- end }}{{- /* with .Values.exporter.enableUserStats */}}
           ports:
             - name: metrics
               containerPort: {{ include "slurm-exporter.port" . }}

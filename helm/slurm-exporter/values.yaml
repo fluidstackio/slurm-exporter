@@ -36,6 +36,11 @@ exporter:
   # The name of the secret containing a token to communicate with the Slurm REST API.
   secretName: ""
   #
+  # --(bool)
+  # Enable per-user metrics data.
+  # Enabling this could significantly increase prometheus storage requirements.
+  enableUserStats: false
+  #
   # -- (integer)
   # Set the number of replicas to deploy.
   replicas: 1
