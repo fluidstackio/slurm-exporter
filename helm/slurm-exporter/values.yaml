@@ -32,20 +32,6 @@ exporter:
   # Enables metrics collection.
   enabled: true
   #
-  # -- (string)
-  # The name of the secret containing a token to communicate with the Slurm REST API.
-  secretName: ""
-  #
-  # --(bool)
-  # Enable per-user metrics data.
-  # Enabling this could significantly increase prometheus storage requirements.
-  enableUserStats: false
-  #
-  # --(string)
-  # The amount of time to wait between updating the Slurm restapi cache.
-  # Must be greater than 1s and must be parsable by `time.ParseDuration`.
-  cacheFrequency: 5s
-  #
   # -- (integer)
   # Set the number of replicas to deploy.
   replicas: 1
@@ -65,6 +51,20 @@ exporter:
     # Set the image tag to use.
     # @default -- The chart Version.
     tag: ""
+  #
+  # -- (string)
+  # The name of the secret containing a token to communicate with the Slurm REST API.
+  secretName: ""
+  #
+  # --(bool)
+  # Enable per-user metrics data.
+  # Enabling this could significantly increase prometheus storage requirements.
+  enableUserStats: false
+  #
+  # --(string)
+  # The amount of time to wait between updating the Slurm restapi cache.
+  # Must be greater than 1s and must be parsable by `time.ParseDuration`.
+  cacheFrequency: 5s
   #
   # -- (string)
   # Set the priority class to use.
