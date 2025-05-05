@@ -70,6 +70,8 @@ exporter:
   # Set container resource requests and limits for Kubernetes Pod scheduling.
   # Ref: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#resource-requests-and-limits-of-pod-and-container
   resources: {}
+  #
+  # Service monitor configurations.
   serviceMonitor:
     enabled: true
     endpoints:
