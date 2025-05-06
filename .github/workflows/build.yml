@@ -1,12 +1,14 @@
-name: Build
+name: 🚀 Release
 on:
-  push:
-    tags:
-      - v*
+  release:
+    types: [published]
+
+concurrency:
+  group: ${{ github.ref_name }}_${{ github.workflow }}
+  cancel-in-progress: false
 
 jobs:
   build:
-    if: ${{ github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
     steps:
     - name: 'Checkout GitHub Action'
