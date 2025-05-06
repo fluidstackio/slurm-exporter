@@ -55,7 +55,8 @@ func TestPartitionJobCollector_getPartitionJobs(t *testing.T) {
 						Running: 1,
 						Hold:    1,
 					},
-					CpusAlloc: 8,
+					CpusAlloc:   8,
+					MemoryAlloc: 1024,
 				},
 				*partition2.Name: {
 					JobStates: JobStates{
@@ -65,6 +66,7 @@ func TestPartitionJobCollector_getPartitionJobs(t *testing.T) {
 						Hold:    1,
 					},
 					CpusAlloc:        12,
+					MemoryAlloc:      3072,
 					PendingNodeCount: 2,
 				},
 			},

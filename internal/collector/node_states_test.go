@@ -64,6 +64,17 @@ func Test_parseNodeState(t *testing.T) {
 			want: &NodeStates{Total: 1, Error: 1},
 		},
 		{
+			name: "future",
+			args: args{
+				node: types.V0041Node{V0041Node: api.V0041Node{
+					State: ptr.To([]api.V0041NodeState{
+						api.V0041NodeStateFUTURE,
+					}),
+				}},
+			},
+			want: &NodeStates{Total: 1, Future: 1},
+		},
+		{
 			name: "idle",
 			args: args{
 				node: types.V0041Node{V0041Node: api.V0041Node{
@@ -84,6 +95,17 @@ func Test_parseNodeState(t *testing.T) {
 				}},
 			},
 			want: &NodeStates{Total: 1, Mixed: 1},
+		},
+		{
+			name: "unknown",
+			args: args{
+				node: types.V0041Node{V0041Node: api.V0041Node{
+					State: ptr.To([]api.V0041NodeState{
+						api.V0041NodeStateUNKNOWN,
+					}),
+				}},
+			},
+			want: &NodeStates{Total: 1, Unknown: 1},
 		},
 		{
 			name: "all states, all flags",
@@ -124,12 +146,16 @@ func Test_parseNodeState(t *testing.T) {
 				}},
 			},
 			want: &NodeStates{
-				Total:       1,
-				Allocated:   1,
-				Completing:  1,
-				Drain:       1,
-				Maintenance: 1,
-				Reserved:    1,
+				Total:           1,
+				Allocated:       1,
+				Completing:      1,
+				Drain:           1,
+				Fail:            1,
+				Maintenance:     1,
+				NotResponding:   1,
+				Planned:         1,
+				RebootRequested: 1,
+				Reserved:        1,
 			},
 		},
 	}

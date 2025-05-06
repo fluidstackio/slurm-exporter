@@ -19,20 +19,26 @@ func NewPartitionNodeCollector(slurmClient client.Client) prometheus.Collector {
 	return &partitionNodeCollector{
 		slurmClient: slurmClient,
 
-		Total:     prometheus.NewDesc("slurm_partition_nodes_total", "Total number of nodes in the partition", partitionLabels, nil),
-		CpusTotal: prometheus.NewDesc("slurm_partition_nodes_cpus_total", "Total number of CPUs among nodes in the partition", partitionLabels, nil),
-		CpusAlloc: prometheus.NewDesc("slurm_partition_nodes_cpus_alloc_total", "Number of Allocated CPUs among nodes in the partition", partitionLabels, nil),
-		CpusIdle:  prometheus.NewDesc("slurm_partition_nodes_cpus_idle_total", "Number of Idle CPUs among nodes in the partition", partitionLabels, nil),
+		Total:       prometheus.NewDesc("slurm_partition_nodes_total", "Total number of nodes in the partition", partitionLabels, nil),
+		CpusTotal:   prometheus.NewDesc("slurm_partition_nodes_cpus_total", "Total number of CPUs among nodes in the partition", partitionLabels, nil),
+		CpusAlloc:   prometheus.NewDesc("slurm_partition_nodes_cpus_alloc_total", "Number of Allocated CPUs among nodes in the partition", partitionLabels, nil),
+		CpusIdle:    prometheus.NewDesc("slurm_partition_nodes_cpus_idle_total", "Number of Idle CPUs among nodes in the partition", partitionLabels, nil),
+		MemoryTotal: prometheus.NewDesc("slurm_partition_nodes_memory_total", "Total amount of Memory (MB) among nodes in the partition", partitionLabels, nil),
+		MemoryAlloc: prometheus.NewDesc("slurm_partition_nodes_memory_alloc_bytes", "Amount of Allocated Memory (MB) among nodes in the partition", partitionLabels, nil),
+		MemoryFree:  prometheus.NewDesc("slurm_partition_nodes_memory_free_bytes", "Amount of Free Memory (MB) among nodes in the partition", partitionLabels, nil),
 	}
 }
 
 type partitionNodeCollector struct {
 	slurmClient client.Client
 
-	Total     *prometheus.Desc
-	CpusTotal *prometheus.Desc
-	CpusAlloc *prometheus.Desc
-	CpusIdle  *prometheus.Desc
+	Total       *prometheus.Desc
+	CpusTotal   *prometheus.Desc
+	CpusAlloc   *prometheus.Desc
+	CpusIdle    *prometheus.Desc
+	MemoryTotal *prometheus.Desc
+	MemoryAlloc *prometheus.Desc
+	MemoryFree  *prometheus.Desc
 }
 
 func (c *partitionNodeCollector) Describe(ch chan<- *prometheus.Desc) {
@@ -56,6 +62,9 @@ func (c *partitionNodeCollector) Collect(ch chan<- prometheus.Metric) {
 		ch <- prometheus.MustNewConstMetric(c.CpusTotal, prometheus.GaugeValue, float64(data.CpusTotal), partition)
 		ch <- prometheus.MustNewConstMetric(c.CpusAlloc, prometheus.GaugeValue, float64(data.CpusAlloc), partition)
 		ch <- prometheus.MustNewConstMetric(c.CpusIdle, prometheus.GaugeValue, float64(data.CpusIdle), partition)
+		ch <- prometheus.MustNewConstMetric(c.MemoryTotal, prometheus.GaugeValue, float64(data.MemoryTotal), partition)
+		ch <- prometheus.MustNewConstMetric(c.MemoryAlloc, prometheus.GaugeValue, float64(data.MemoryAlloc), partition)
+		ch <- prometheus.MustNewConstMetric(c.MemoryFree, prometheus.GaugeValue, float64(data.MemoryFree), partition)
 	}
 }
 
@@ -102,6 +111,9 @@ func parsePartitionNode(
 		for _, key := range nodeTres.partitions {
 			metrics[key].CpusAlloc += nodeTres.CpusAlloc
 			metrics[key].CpusIdle += nodeTres.CpusIdle
+			metrics[key].MemoryTotal += nodeTres.MemoryTotal
+			metrics[key].MemoryAlloc += nodeTres.MemoryAlloc
+			metrics[key].MemoryFree += nodeTres.MemoryFree
 		}
 	}
 
@@ -109,8 +121,11 @@ func parsePartitionNode(
 }
 
 type PartitionNodes struct {
-	Total     uint
-	CpusTotal uint
-	CpusAlloc uint
-	CpusIdle  uint
+	Total       uint
+	CpusTotal   uint
+	CpusAlloc   uint
+	CpusIdle    uint
+	MemoryTotal uint
+	MemoryAlloc uint
+	MemoryFree  uint
 }

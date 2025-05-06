@@ -25,13 +25,19 @@ func NewNodeStateCollector(slurmClient client.Client) prometheus.Collector {
 		Allocated: prometheus.NewDesc("slurm_nodes_allocated_total", "Number of nodes in Allocated state", nil, nil),
 		Down:      prometheus.NewDesc("slurm_nodes_down_total", "Number of nodes in Down state", nil, nil),
 		Error:     prometheus.NewDesc("slurm_nodes_error_total", "Number of nodes in Error state", nil, nil),
+		Future:    prometheus.NewDesc("slurm_nodes_future_total", "Number of nodes in Future state", nil, nil),
 		Idle:      prometheus.NewDesc("slurm_nodes_idle_total", "Number of nodes in Idle state", nil, nil),
 		Mixed:     prometheus.NewDesc("slurm_nodes_mixed_total", "Number of nodes in Mixed state", nil, nil),
+		Unknown:   prometheus.NewDesc("slurm_nodes_unknown_total", "Number of nodes in Unknown state", nil, nil),
 		// Flag State
-		Completing:  prometheus.NewDesc("slurm_nodes_completing_total", "Number of nodes with Completing flag", nil, nil),
-		Drain:       prometheus.NewDesc("slurm_nodes_drain_total", "Number of nodes with Drain flag", nil, nil),
-		Maintenance: prometheus.NewDesc("slurm_nodes_maintenance_total", "Number of nodes with Maintenance flag", nil, nil),
-		Reserved:    prometheus.NewDesc("slurm_nodes_reserved_total", "Number of nodes with Reserved flag", nil, nil),
+		Completing:      prometheus.NewDesc("slurm_nodes_completing_total", "Number of nodes with Completing flag", nil, nil),
+		Drain:           prometheus.NewDesc("slurm_nodes_drain_total", "Number of nodes with Drain flag", nil, nil),
+		Fail:            prometheus.NewDesc("slurm_nodes_fail_total", "Number of nodes with Fail flag", nil, nil),
+		Maintenance:     prometheus.NewDesc("slurm_nodes_maintenance_total", "Number of nodes with Maintenance flag", nil, nil),
+		NotResponding:   prometheus.NewDesc("slurm_nodes_notresponding_total", "Number of nodes with NotResponding flag", nil, nil),
+		Planned:         prometheus.NewDesc("slurm_nodes_planned_total", "Number of nodes with Planned flag", nil, nil),
+		RebootRequested: prometheus.NewDesc("slurm_nodes_rebootrequested_total", "Number of nodes with RebootRequested flag", nil, nil),
+		Reserved:        prometheus.NewDesc("slurm_nodes_reserved_total", "Number of nodes with Reserved flag", nil, nil),
 	}
 }
 
@@ -45,13 +51,19 @@ type nodeStateCollector struct {
 	Allocated *prometheus.Desc
 	Down      *prometheus.Desc
 	Error     *prometheus.Desc
+	Future    *prometheus.Desc
 	Idle      *prometheus.Desc
 	Mixed     *prometheus.Desc
+	Unknown   *prometheus.Desc
 	// Flag State
-	Completing  *prometheus.Desc
-	Drain       *prometheus.Desc
-	Maintenance *prometheus.Desc
-	Reserved    *prometheus.Desc
+	Completing      *prometheus.Desc
+	Drain           *prometheus.Desc
+	Fail            *prometheus.Desc
+	Maintenance     *prometheus.Desc
+	NotResponding   *prometheus.Desc
+	Planned         *prometheus.Desc
+	RebootRequested *prometheus.Desc
+	Reserved        *prometheus.Desc
 }
 
 func (c *nodeStateCollector) Describe(ch chan<- *prometheus.Desc) {
@@ -76,12 +88,18 @@ func (c *nodeStateCollector) Collect(ch chan<- prometheus.Metric) {
 	ch <- prometheus.MustNewConstMetric(c.Allocated, prometheus.GaugeValue, float64(metrics.Allocated))
 	ch <- prometheus.MustNewConstMetric(c.Down, prometheus.GaugeValue, float64(metrics.Down))
 	ch <- prometheus.MustNewConstMetric(c.Error, prometheus.GaugeValue, float64(metrics.Error))
+	ch <- prometheus.MustNewConstMetric(c.Future, prometheus.GaugeValue, float64(metrics.Future))
 	ch <- prometheus.MustNewConstMetric(c.Idle, prometheus.GaugeValue, float64(metrics.Idle))
 	ch <- prometheus.MustNewConstMetric(c.Mixed, prometheus.GaugeValue, float64(metrics.Mixed))
+	ch <- prometheus.MustNewConstMetric(c.Unknown, prometheus.GaugeValue, float64(metrics.Unknown))
 	// Flag State
 	ch <- prometheus.MustNewConstMetric(c.Completing, prometheus.GaugeValue, float64(metrics.Completing))
 	ch <- prometheus.MustNewConstMetric(c.Drain, prometheus.GaugeValue, float64(metrics.Drain))
+	ch <- prometheus.MustNewConstMetric(c.Fail, prometheus.GaugeValue, float64(metrics.Fail))
 	ch <- prometheus.MustNewConstMetric(c.Maintenance, prometheus.GaugeValue, float64(metrics.Maintenance))
+	ch <- prometheus.MustNewConstMetric(c.NotResponding, prometheus.GaugeValue, float64(metrics.NotResponding))
+	ch <- prometheus.MustNewConstMetric(c.Planned, prometheus.GaugeValue, float64(metrics.Planned))
+	ch <- prometheus.MustNewConstMetric(c.RebootRequested, prometheus.GaugeValue, float64(metrics.RebootRequested))
 	ch <- prometheus.MustNewConstMetric(c.Reserved, prometheus.GaugeValue, float64(metrics.Reserved))
 }
 
@@ -113,10 +131,14 @@ func parseNodeState(metrics *NodeStates, node types.V0041Node) {
 		metrics.Down++
 	case states.Has(api.V0041NodeStateERROR):
 		metrics.Error++
+	case states.Has(api.V0041NodeStateFUTURE):
+		metrics.Future++
 	case states.Has(api.V0041NodeStateIDLE):
 		metrics.Idle++
 	case states.Has(api.V0041NodeStateMIXED):
 		metrics.Mixed++
+	case states.Has(api.V0041NodeStateUNKNOWN):
+		metrics.Unknown++
 	}
 	// Flag States
 	if states.Has(api.V0041NodeStateCOMPLETING) {
@@ -125,8 +147,20 @@ func parseNodeState(metrics *NodeStates, node types.V0041Node) {
 	if states.Has(api.V0041NodeStateDRAIN) {
 		metrics.Drain++
 	}
+	if states.Has(api.V0041NodeStateFAIL) {
+		metrics.Fail++
+	}
 	if states.Has(api.V0041NodeStateMAINTENANCE) {
 		metrics.Maintenance++
+	}
+	if states.Has(api.V0041NodeStateNOTRESPONDING) {
+		metrics.NotResponding++
+	}
+	if states.Has(api.V0041NodeStatePLANNED) {
+		metrics.Planned++
+	}
+	if states.Has(api.V0041NodeStateREBOOTREQUESTED) {
+		metrics.RebootRequested++
 	}
 	if states.Has(api.V0041NodeStateRESERVED) {
 		metrics.Reserved++
@@ -141,11 +175,17 @@ type NodeStates struct {
 	Allocated uint
 	Down      uint
 	Error     uint
+	Future    uint
 	Idle      uint
 	Mixed     uint
+	Unknown   uint
 	// Flag State
-	Completing  uint
-	Drain       uint
-	Maintenance uint
-	Reserved    uint
+	Completing      uint
+	Drain           uint
+	Fail            uint
+	Maintenance     uint
+	NotResponding   uint
+	Planned         uint
+	RebootRequested uint
+	Reserved        uint
 }

@@ -25,7 +25,7 @@ func TestUserJobsCollector_getUserJobs(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		want    map[string]*JobStates
+		want    map[string]*UserJobs
 		wantErr bool
 	}{
 		{
@@ -36,7 +36,7 @@ func TestUserJobsCollector_getUserJobs(t *testing.T) {
 			args: args{
 				ctx: context.TODO(),
 			},
-			want: make(map[string]*JobStates),
+			want: make(map[string]*UserJobs),
 		},
 		{
 			name: "test data",
@@ -46,9 +46,17 @@ func TestUserJobsCollector_getUserJobs(t *testing.T) {
 			args: args{
 				ctx: context.TODO(),
 			},
-			want: map[string]*JobStates{
-				"1000": {Total: 2, Pending: 1, Running: 1},
-				"root": {Total: 2, Pending: 1, Running: 1, Hold: 1},
+			want: map[string]*UserJobs{
+				"1000": {
+					JobStates:   JobStates{Total: 2, Pending: 1, Running: 1},
+					CpusAlloc:   12,
+					MemoryAlloc: 3072,
+				},
+				"root": {
+					JobStates:   JobStates{Total: 2, Pending: 1, Running: 1, Hold: 1},
+					CpusAlloc:   8,
+					MemoryAlloc: 1024,
+				},
 			},
 		},
 		{

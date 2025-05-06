@@ -31,6 +31,61 @@ func Test_parseJobState(t *testing.T) {
 			want: &JobStates{Total: 1},
 		},
 		{
+			name: "boot fail",
+			args: args{
+				job: types.V0041JobInfo{V0041JobInfo: api.V0041JobInfo{
+					JobState: ptr.To([]api.V0041JobInfoJobState{
+						api.V0041JobInfoJobStateBOOTFAIL,
+					}),
+				}},
+			},
+			want: &JobStates{Total: 1, BootFail: 1},
+		},
+		{
+			name: "cancelled",
+			args: args{
+				job: types.V0041JobInfo{V0041JobInfo: api.V0041JobInfo{
+					JobState: ptr.To([]api.V0041JobInfoJobState{
+						api.V0041JobInfoJobStateCANCELLED,
+					}),
+				}},
+			},
+			want: &JobStates{Total: 1, Cancelled: 1},
+		},
+		{
+			name: "completed",
+			args: args{
+				job: types.V0041JobInfo{V0041JobInfo: api.V0041JobInfo{
+					JobState: ptr.To([]api.V0041JobInfoJobState{
+						api.V0041JobInfoJobStateCOMPLETED,
+					}),
+				}},
+			},
+			want: &JobStates{Total: 1, Completed: 1},
+		},
+		{
+			name: "deadline",
+			args: args{
+				job: types.V0041JobInfo{V0041JobInfo: api.V0041JobInfo{
+					JobState: ptr.To([]api.V0041JobInfoJobState{
+						api.V0041JobInfoJobStateDEADLINE,
+					}),
+				}},
+			},
+			want: &JobStates{Total: 1, Deadline: 1},
+		},
+		{
+			name: "failed",
+			args: args{
+				job: types.V0041JobInfo{V0041JobInfo: api.V0041JobInfo{
+					JobState: ptr.To([]api.V0041JobInfoJobState{
+						api.V0041JobInfoJobStateFAILED,
+					}),
+				}},
+			},
+			want: &JobStates{Total: 1, Failed: 1},
+		},
+		{
 			name: "pending",
 			args: args{
 				job: types.V0041JobInfo{V0041JobInfo: api.V0041JobInfo{
@@ -42,6 +97,17 @@ func Test_parseJobState(t *testing.T) {
 			want: &JobStates{Total: 1, Pending: 1},
 		},
 		{
+			name: "preempted",
+			args: args{
+				job: types.V0041JobInfo{V0041JobInfo: api.V0041JobInfo{
+					JobState: ptr.To([]api.V0041JobInfoJobState{
+						api.V0041JobInfoJobStatePREEMPTED,
+					}),
+				}},
+			},
+			want: &JobStates{Total: 1, Preempted: 1},
+		},
+		{
 			name: "running",
 			args: args{
 				job: types.V0041JobInfo{V0041JobInfo: api.V0041JobInfo{
@@ -51,6 +117,50 @@ func Test_parseJobState(t *testing.T) {
 				}},
 			},
 			want: &JobStates{Total: 1, Running: 1},
+		},
+		{
+			name: "suspended",
+			args: args{
+				job: types.V0041JobInfo{V0041JobInfo: api.V0041JobInfo{
+					JobState: ptr.To([]api.V0041JobInfoJobState{
+						api.V0041JobInfoJobStateSUSPENDED,
+					}),
+				}},
+			},
+			want: &JobStates{Total: 1, Suspended: 1},
+		},
+		{
+			name: "timeout",
+			args: args{
+				job: types.V0041JobInfo{V0041JobInfo: api.V0041JobInfo{
+					JobState: ptr.To([]api.V0041JobInfoJobState{
+						api.V0041JobInfoJobStateTIMEOUT,
+					}),
+				}},
+			},
+			want: &JobStates{Total: 1, Timeout: 1},
+		},
+		{
+			name: "node fail",
+			args: args{
+				job: types.V0041JobInfo{V0041JobInfo: api.V0041JobInfo{
+					JobState: ptr.To([]api.V0041JobInfoJobState{
+						api.V0041JobInfoJobStateNODEFAIL,
+					}),
+				}},
+			},
+			want: &JobStates{Total: 1, NodeFail: 1},
+		},
+		{
+			name: "out of memory",
+			args: args{
+				job: types.V0041JobInfo{V0041JobInfo: api.V0041JobInfo{
+					JobState: ptr.To([]api.V0041JobInfoJobState{
+						api.V0041JobInfoJobStateOUTOFMEMORY,
+					}),
+				}},
+			},
+			want: &JobStates{Total: 1, OutOfMemory: 1},
 		},
 		{
 			name: "all states, all flags",
@@ -90,9 +200,13 @@ func Test_parseJobState(t *testing.T) {
 				}},
 			},
 			want: &JobStates{
-				Total:   1,
-				Pending: 1,
-				Hold:    1,
+				Total:       1,
+				BootFail:    1,
+				Completing:  1,
+				Configuring: 1,
+				PowerUpNode: 1,
+				StageOut:    1,
+				Hold:        1,
 			},
 		},
 	}

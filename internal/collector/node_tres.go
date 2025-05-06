@@ -23,6 +23,10 @@ func NewNodeTresCollector(slurmClient client.Client) prometheus.Collector {
 		CpusTotal: prometheus.NewDesc("slurm_node_cpus_total", "Total number of CPUs on the node", nodeLabels, nil),
 		CpusAlloc: prometheus.NewDesc("slurm_node_cpus_alloc_total", "Number of Allocated CPUs on the node", nodeLabels, nil),
 		CpusIdle:  prometheus.NewDesc("slurm_node_cpus_idle_total", "Number of Idle CPUs on the node", nodeLabels, nil),
+		// Memory
+		MemoryTotal: prometheus.NewDesc("slurm_node_memory_bytes", "Totcal amount of Allocated Memory (MB) on the node", nodeLabels, nil),
+		MemoryAlloc: prometheus.NewDesc("slurm_node_memory_alloc_bytes", "Amount of Allocated Memory (MB) on the node", nodeLabels, nil),
+		MemoryFree:  prometheus.NewDesc("slurm_node_memory_free_bytes", "Amount of Free Memory (MB) on the node", nodeLabels, nil),
 	}
 }
 
@@ -33,6 +37,10 @@ type nodeTresCollector struct {
 	CpusTotal *prometheus.Desc
 	CpusAlloc *prometheus.Desc
 	CpusIdle  *prometheus.Desc
+	// Memory
+	MemoryTotal *prometheus.Desc
+	MemoryAlloc *prometheus.Desc
+	MemoryFree  *prometheus.Desc
 }
 
 func (c *nodeTresCollector) Describe(ch chan<- *prometheus.Desc) {
@@ -56,6 +64,10 @@ func (c *nodeTresCollector) Collect(ch chan<- prometheus.Metric) {
 		ch <- prometheus.MustNewConstMetric(c.CpusTotal, prometheus.GaugeValue, float64(data.CpusTotal), node)
 		ch <- prometheus.MustNewConstMetric(c.CpusAlloc, prometheus.GaugeValue, float64(data.CpusAlloc), node)
 		ch <- prometheus.MustNewConstMetric(c.CpusIdle, prometheus.GaugeValue, float64(data.CpusIdle), node)
+		// Memory
+		ch <- prometheus.MustNewConstMetric(c.MemoryTotal, prometheus.GaugeValue, float64(data.MemoryTotal), node)
+		ch <- prometheus.MustNewConstMetric(c.MemoryAlloc, prometheus.GaugeValue, float64(data.MemoryAlloc), node)
+		ch <- prometheus.MustNewConstMetric(c.MemoryFree, prometheus.GaugeValue, float64(data.MemoryFree), node)
 	}
 }
 
@@ -73,10 +85,13 @@ func parseNodeTres(nodeList *types.V0041NodeList) map[string]*NodeTres {
 	for _, node := range nodeList.Items {
 		key := string(node.GetKey())
 		data := &NodeTres{
-			CpusTotal:  uint(ptr.Deref(node.Cpus, 0)),
-			CpusAlloc:  uint(ptr.Deref(node.AllocCpus, 0)),
-			CpusIdle:   uint(ptr.Deref(node.AllocIdleCpus, 0)),
-			partitions: ptr.Deref(node.Partitions, []string{}),
+			CpusTotal:   uint(ptr.Deref(node.Cpus, 0)),
+			CpusAlloc:   uint(ptr.Deref(node.AllocCpus, 0)),
+			CpusIdle:    uint(ptr.Deref(node.AllocIdleCpus, 0)),
+			MemoryTotal: uint(ptr.Deref(node.RealMemory, 0)),
+			MemoryAlloc: uint(ptr.Deref(node.AllocMemory, 0)),
+			MemoryFree:  uint(ParseUint64NoVal(node.FreeMem)),
+			partitions:  ptr.Deref(node.Partitions, []string{}),
 		}
 		metrics[key] = data
 	}
@@ -88,6 +103,10 @@ type NodeTres struct {
 	CpusTotal uint
 	CpusAlloc uint
 	CpusIdle  uint
+	// Memory
+	MemoryTotal uint
+	MemoryAlloc uint
+	MemoryFree  uint
 	// Metadata
 	partitions []string
 }
