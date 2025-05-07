@@ -278,7 +278,7 @@ func TestDescribe(t *testing.T) {
 		assert.NotNil(t, desc)
 	}
 	assert.NotNil(t, desc)
-	assert.Equal(t, 83, numDesc)
+	assert.Equal(t, 84, numDesc)
 }
 
 // TestNewSlurmCollector will test that NewSlurmCollector
