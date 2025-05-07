@@ -19,10 +19,10 @@ func NewPartitionNodeCollector(slurmClient client.Client) prometheus.Collector {
 	return &partitionNodeCollector{
 		slurmClient: slurmClient,
 
-		Total:     prometheus.NewDesc("slurm_partition_nodes", "Number of nodes in a slurm partition", partitionLabels, nil),
-		CpusTotal: prometheus.NewDesc("slurm_partition_nodes_cpus", "Number of CPUs in a slurm partition", partitionLabels, nil),
-		CpusAlloc: prometheus.NewDesc("slurm_partition_nodes_alloc_cpus", "Number of allocated CPUs in a slurm partition", partitionLabels, nil),
-		CpusIdle:  prometheus.NewDesc("slurm_partition_nodes_idle_cpus", "Number of idle CPUs in a slurm partition", partitionLabels, nil),
+		Total:     prometheus.NewDesc("slurm_partition_nodes_total", "Total number of nodes in the partition", partitionLabels, nil),
+		CpusTotal: prometheus.NewDesc("slurm_partition_nodes_cpus_total", "Total number of CPUs among nodes in the partition", partitionLabels, nil),
+		CpusAlloc: prometheus.NewDesc("slurm_partition_nodes_cpus_alloc_total", "Number of Allocated CPUs among nodes in the partition", partitionLabels, nil),
+		CpusIdle:  prometheus.NewDesc("slurm_partition_nodes_cpus_idle_total", "Number of Idle CPUs among nodes in the partition", partitionLabels, nil),
 	}
 }
 

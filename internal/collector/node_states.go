@@ -20,18 +20,18 @@ func NewNodeStateCollector(slurmClient client.Client) prometheus.Collector {
 		slurmClient: slurmClient,
 
 		// Other
-		Total: prometheus.NewDesc("slurm_node_total", "Total number of slurm nodes", nil, nil),
+		Total: prometheus.NewDesc("slurm_nodes_total", "Total number of nodes", nil, nil),
 		// Base State
-		Allocated: prometheus.NewDesc("slurm_alloc_nodes", "Number of nodes in allocated state", nil, nil),
-		Down:      prometheus.NewDesc("slurm_down_nodes", "Number of nodes in down state", nil, nil),
-		Error:     prometheus.NewDesc("slurm_err_nodes", "Number of nodes in error state", nil, nil),
-		Idle:      prometheus.NewDesc("slurm_idle_nodes", "Number of nodes in idle state", nil, nil),
-		Mixed:     prometheus.NewDesc("slurm_mixed_nodes", "Number of nodes in mixed state", nil, nil),
+		Allocated: prometheus.NewDesc("slurm_nodes_allocated_total", "Number of nodes in Allocated state", nil, nil),
+		Down:      prometheus.NewDesc("slurm_nodes_down_total", "Number of nodes in Down state", nil, nil),
+		Error:     prometheus.NewDesc("slurm_nodes_error_total", "Number of nodes in Error state", nil, nil),
+		Idle:      prometheus.NewDesc("slurm_nodes_idle_total", "Number of nodes in Idle state", nil, nil),
+		Mixed:     prometheus.NewDesc("slurm_nodes_mixed_total", "Number of nodes in Mixed state", nil, nil),
 		// Flag State
-		Completing:  prometheus.NewDesc("slurm_completing_nodes", "Number of nodes in completing state", nil, nil),
-		Drain:       prometheus.NewDesc("slurm_drain_nodes", "Number of nodes in drain state", nil, nil),
-		Maintenance: prometheus.NewDesc("slurm_maintenance_nodes", "Number of nodes with Maintenance flag", nil, nil),
-		Reserved:    prometheus.NewDesc("slurm_reserved_nodes", "Number of nodes with Reserved flag", nil, nil),
+		Completing:  prometheus.NewDesc("slurm_nodes_completing_total", "Number of nodes with Completing flag", nil, nil),
+		Drain:       prometheus.NewDesc("slurm_nodes_drain_total", "Number of nodes with Drain flag", nil, nil),
+		Maintenance: prometheus.NewDesc("slurm_nodes_maintenance_total", "Number of nodes with Maintenance flag", nil, nil),
+		Reserved:    prometheus.NewDesc("slurm_nodes_reserved_total", "Number of nodes with Reserved flag", nil, nil),
 	}
 }
 

@@ -23,10 +23,10 @@ func NewUserJobsCollector(slurmClient client.Client) prometheus.Collector {
 		// Other
 		Total: prometheus.NewDesc("slurm_user_jobs_total", "Total number of user jobs", userLabels, nil),
 		// Base States
-		Pending: prometheus.NewDesc("slurm_user_pending_jobs", "Number of pending jobs for a slurm user", userLabels, nil),
-		Running: prometheus.NewDesc("slurm_user_running_jobs", "Number of running jobs for a slurm user", userLabels, nil),
+		Pending: prometheus.NewDesc("slurm_user_jobs_pending_total", "Number of user jobs in Pending state", userLabels, nil),
+		Running: prometheus.NewDesc("slurm_user_jobs_running_total", "Number of user jobs in Running state", userLabels, nil),
 		// Other States
-		Hold: prometheus.NewDesc("slurm_user_hold_jobs", "Number of hold jobs for a slurm user", userLabels, nil),
+		Hold: prometheus.NewDesc("slurm_user_jobs_hold_total", "Number of user jobs with Hold flag", userLabels, nil),
 	}
 }
 

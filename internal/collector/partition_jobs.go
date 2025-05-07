@@ -22,14 +22,14 @@ func NewPartitionJobCollector(slurmClient client.Client) prometheus.Collector {
 		slurmClient: slurmClient,
 
 		// States
-		Total:   prometheus.NewDesc("slurm_partition_jobs", "Number of jobs in a slurm partition", partitionLabels, nil),
-		Pending: prometheus.NewDesc("slurm_partition_pending_jobs", "Number of pending jobs in a slurm partition", partitionLabels, nil),
-		Running: prometheus.NewDesc("slurm_partition_running_jobs", "Number of running jobs in a slurm partition", partitionLabels, nil),
-		Hold:    prometheus.NewDesc("slurm_partition_hold_jobs", "Number of hold jobs in a slurm partition", partitionLabels, nil),
+		Total:   prometheus.NewDesc("slurm_partition_jobs_total", "Total number of jobs in the partition", partitionLabels, nil),
+		Pending: prometheus.NewDesc("slurm_partition_jobs_pending_total", "Number of jobs in Pending state in the partition", partitionLabels, nil),
+		Running: prometheus.NewDesc("slurm_partition_jobs_running_total", "Number of jobs in Running state in the partition", partitionLabels, nil),
+		Hold:    prometheus.NewDesc("slurm_partition_jobs_hold_total", "Number of jobs with Hold flag in the partition", partitionLabels, nil),
 		// Tres
-		CpusAlloc: prometheus.NewDesc("slurm_partition_alloc_cpus", "Number of allocated CPUs in a slurm partition", partitionLabels, nil),
+		CpusAlloc: prometheus.NewDesc("slurm_partition_jobs_cpus_alloc_total", "Number of Allocated CPUs among jobs in the partition", partitionLabels, nil),
 		// Other
-		PendingNodeCount: prometheus.NewDesc("slurm_partition_max_pending_nodes", "Number of nodes pending for the largest job in the partition", partitionLabels, nil),
+		PendingNodeCount: prometheus.NewDesc("slurm_partition_jobs_pending_maxnodecount_total", "Largest number of nodes required among pending jobs in the partition", partitionLabels, nil),
 	}
 }
 

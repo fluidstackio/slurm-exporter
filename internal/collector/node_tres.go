@@ -20,9 +20,9 @@ func NewNodeTresCollector(slurmClient client.Client) prometheus.Collector {
 		slurmClient: slurmClient,
 
 		// CPUs
-		CpusTotal: prometheus.NewDesc("slurm_node_cpus", "Number of CPUs in a slurm node", nodeLabels, nil),
-		CpusAlloc: prometheus.NewDesc("slurm_node_alloc_cpus", "Number of allocated CPUs in a slurm node", nodeLabels, nil),
-		CpusIdle:  prometheus.NewDesc("slurm_node_idle_cpus", "Number of idle CPUs in a slurm node", nodeLabels, nil),
+		CpusTotal: prometheus.NewDesc("slurm_node_cpus_total", "Total number of CPUs on the node", nodeLabels, nil),
+		CpusAlloc: prometheus.NewDesc("slurm_node_cpus_alloc_total", "Number of Allocated CPUs on the node", nodeLabels, nil),
+		CpusIdle:  prometheus.NewDesc("slurm_node_cpus_idle_total", "Number of Idle CPUs on the node", nodeLabels, nil),
 	}
 }
 
