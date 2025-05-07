@@ -26,10 +26,9 @@ var (
 
 // Input flags to the command
 type Flags struct {
-	MetricsAddr    string
-	Server         string
-	CacheFreq      time.Duration
-	PerUserMetrics bool
+	MetricsAddr string
+	Server      string
+	CacheFreq   time.Duration
 }
 
 func parseFlags(flags *Flags) {
@@ -50,12 +49,6 @@ func parseFlags(flags *Flags) {
 		"cache-freq",
 		5*time.Second,
 		"The amount of time to wait between updating the slurm restapi cache. Must be greater than 1s and must be parsable by time.ParseDuration.",
-	)
-	flag.BoolVar(
-		&flags.PerUserMetrics,
-		"per-user-metrics",
-		false,
-		"Enable per-user metrics data. Enabling this could significantly increase prometheus storage requirements.",
 	)
 	flag.Parse()
 }
@@ -80,7 +73,7 @@ func main() {
 		setupLog.Error(err, "could not create slurm client")
 		os.Exit(1)
 	}
-	slurmCollector := exporter.NewSlurmCollector(slurmClient, flags.PerUserMetrics)
+	slurmCollector := exporter.NewSlurmCollector(slurmClient)
 	prometheus.MustRegister(slurmCollector)
 
 	setupLog.Info("starting exporter")

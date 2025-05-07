@@ -44,7 +44,7 @@ func newSlurmCollectorHelper() SlurmCollector {
 	nodes.AppendItem(nodeC)
 
 	slurmClient := newFakeClientList(interceptor.Funcs{}, jobs, partitions, nodes)
-	sc := NewSlurmCollector(slurmClient, true)
+	sc := NewSlurmCollector(slurmClient)
 	return *sc
 }
 
@@ -63,7 +63,7 @@ func TestSlurmParse(t *testing.T) {
 	os.Setenv("SLURM_JWT", "foo")
 	c, err := NewSlurmClient(exporter_url, cacheFreq)
 	assert.Nil(t, err)
-	sc := NewSlurmCollector(c, false)
+	sc := NewSlurmCollector(c)
 
 	jobs := &slurmtypes.V0041JobInfoList{}
 	partitions := &slurmtypes.V0041PartitionInfoList{}
@@ -214,7 +214,7 @@ func TestDescribe(t *testing.T) {
 	var numDesc int
 	cl, err := NewSlurmClient(exporter_url, cacheFreq)
 	assert.Nil(t, err)
-	sc := NewSlurmCollector(cl, false)
+	sc := NewSlurmCollector(cl)
 
 	go func() {
 		sc.Describe(c)
@@ -234,7 +234,6 @@ func TestNewSlurmCollector(t *testing.T) {
 	c, err := NewSlurmClient(exporter_url, cacheFreq)
 	assert.Nil(t, err)
 	assert.NotNil(t, c)
-	sc := NewSlurmCollector(c, false)
+	sc := NewSlurmCollector(c)
 	assert.NotNil(t, sc)
-	assert.Equal(t, false, sc.perUserMetrics)
 }

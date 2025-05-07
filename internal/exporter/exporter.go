@@ -70,8 +70,7 @@ type slurmData struct {
 }
 
 type SlurmCollector struct {
-	slurmClient    client.Client
-	perUserMetrics bool
+	slurmClient client.Client
 
 	partitionNodes           *prometheus.Desc
 	partitionCpus            *prometheus.Desc
@@ -290,10 +289,9 @@ func (r *SlurmCollector) slurmParse(
 	return slurmData
 }
 
-func NewSlurmCollector(slurmClient client.Client, perUserMetrics bool) *SlurmCollector {
+func NewSlurmCollector(slurmClient client.Client) *SlurmCollector {
 	return &SlurmCollector{
 		slurmClient:              slurmClient,
-		perUserMetrics:           perUserMetrics,
 		partitionNodes:           prometheus.NewDesc("slurm_partition_nodes", "Number of nodes in a slurm partition", partitionLabel, nil),
 		partitionCpus:            prometheus.NewDesc("slurm_partition_cpus", "Number of CPUs in a slurm partition", partitionLabel, nil),
 		partitionIdleCpus:        prometheus.NewDesc("slurm_partition_idle_cpus", "Number of idle CPUs in a slurm partition", partitionLabel, nil),
@@ -406,12 +404,10 @@ func (s *SlurmCollector) Collect(ch chan<- prometheus.Metric) {
 	ch <- prometheus.MustNewConstMetric(s.maintenanceNodes, prometheus.GaugeValue, float64(slurmData.nodestates.maintenance))
 	ch <- prometheus.MustNewConstMetric(s.mixedNodes, prometheus.GaugeValue, float64(slurmData.nodestates.mixed))
 	ch <- prometheus.MustNewConstMetric(s.reservedNodes, prometheus.GaugeValue, float64(slurmData.nodestates.reserved))
-	if s.perUserMetrics {
-		for j := range slurmData.jobs {
-			ch <- prometheus.MustNewConstMetric(s.userJobTotal, prometheus.GaugeValue, float64(slurmData.jobs[j].Count), j)
-			ch <- prometheus.MustNewConstMetric(s.userPendingJobs, prometheus.GaugeValue, float64(slurmData.jobs[j].Pending), j)
-			ch <- prometheus.MustNewConstMetric(s.userRunningJobs, prometheus.GaugeValue, float64(slurmData.jobs[j].Running), j)
-			ch <- prometheus.MustNewConstMetric(s.userHoldJobs, prometheus.GaugeValue, float64(slurmData.jobs[j].Hold), j)
-		}
+	for j := range slurmData.jobs {
+		ch <- prometheus.MustNewConstMetric(s.userJobTotal, prometheus.GaugeValue, float64(slurmData.jobs[j].Count), j)
+		ch <- prometheus.MustNewConstMetric(s.userPendingJobs, prometheus.GaugeValue, float64(slurmData.jobs[j].Pending), j)
+		ch <- prometheus.MustNewConstMetric(s.userRunningJobs, prometheus.GaugeValue, float64(slurmData.jobs[j].Running), j)
+		ch <- prometheus.MustNewConstMetric(s.userHoldJobs, prometheus.GaugeValue, float64(slurmData.jobs[j].Hold), j)
 	}
 }

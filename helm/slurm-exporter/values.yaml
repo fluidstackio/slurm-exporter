@@ -60,11 +60,6 @@ exporter:
   # Set the log level by string (e.g. error, info, debug) or number (e.g. 1..5).
   logLevel: info
   #
-  # --(bool)
-  # Enable per-user metrics data.
-  # Enabling this could significantly increase prometheus storage requirements.
-  enableUserStats: false
-  #
   # --(string)
   # The amount of time to wait between updating the Slurm restapi cache.
   # Must be greater than 1s and must be parsable by `time.ParseDuration`.

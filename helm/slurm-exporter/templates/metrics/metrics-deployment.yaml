@@ -54,9 +54,6 @@ spec:
             - --zap-log-level
             - {{ . | quote }}
             {{- end }}{{- /* with .Values.exporter.logLevel */}}
-            {{- with .Values.exporter.enableUserStats }}
-            - --per-user-metrics={{- . }}
-            {{- end }}{{- /* with .Values.exporter.enableUserStats */}}
             {{- with .Values.exporter.cacheFrequency }}
             - --cache-freq
             - {{ . }}

@@ -10,7 +10,6 @@ Helm Chart for Slurm Prometheus Exporter
 |-----|------|---------|-------------|
 | exporter.affinity | object | `{}` |  Set affinity for Kubernetes Pod scheduling. Ref: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#affinity-and-anti-affinity |
 | exporter.cacheFrequency | string | `"5s"` |  The amount of time to wait between updating the Slurm restapi cache. Must be greater than 1s and must be parsable by `time.ParseDuration`. |
-| exporter.enableUserStats | bool | `false` |  Enable per-user metrics data. Enabling this could significantly increase prometheus storage requirements. |
 | exporter.enabled | bool | `true` |  Enables metrics collection. |
 | exporter.image.repository | string | `"ghcr.io/slinkyproject/slurm-exporter"` |  Set the image repository to use. |
 | exporter.image.tag | string | The chart Version. |  Set the image tag to use. |

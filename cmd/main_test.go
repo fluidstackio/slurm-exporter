@@ -13,7 +13,7 @@ import (
 
 func Test_parseFlags(t *testing.T) {
 	flags := Flags{}
-	os.Args = []string{"test", "--metrics-bind-address", "8081", "--server", "foo", "--cache-freq", "10s", "--per-user-metrics", "true"}
+	os.Args = []string{"test", "--metrics-bind-address", "8081", "--server", "foo", "--cache-freq", "10s"}
 	parseFlags(&flags)
 	if flags.MetricsAddr != "8081" {
 		t.Errorf("Test_parseFlags() MetricsAddr = %v, want %v", flags.MetricsAddr, "8081")
@@ -23,8 +23,5 @@ func Test_parseFlags(t *testing.T) {
 	}
 	if flags.CacheFreq != time.Second*10 {
 		t.Errorf("Test_parseFlags() CacheFreq = %v, want %v", flags.CacheFreq, time.Second*10)
-	}
-	if !flags.PerUserMetrics {
-		t.Errorf("Test_parseFlags() PerUserMetrics = %v, want %v", flags.PerUserMetrics, false)
 	}
 }
