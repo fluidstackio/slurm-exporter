@@ -4,7 +4,6 @@
 package main
 
 import (
-	"errors"
 	"flag"
 	"net/http"
 	"os"
@@ -17,7 +16,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	"github.com/SlinkyProject/slurm-exporter/internal/exporter"
+	"github.com/SlinkyProject/slurm-exporter/internal/client"
+	"github.com/SlinkyProject/slurm-exporter/internal/collector"
 )
 
 var (
@@ -63,18 +63,23 @@ func main() {
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 	setupLog.Info("With", "Flags", flags)
 
-	if flags.CacheFreq <= 1*time.Second {
-		setupLog.Error(errors.New("config"), "Must use a cache-freq > 1s.")
-		os.Exit(1)
-	}
-
-	slurmClient, err := exporter.NewSlurmClient(flags.Server, flags.CacheFreq)
+	slurmClient, err := client.NewSlurmClient(flags.Server, flags.CacheFreq)
 	if err != nil {
 		setupLog.Error(err, "could not create slurm client")
 		os.Exit(1)
 	}
-	slurmCollector := exporter.NewSlurmCollector(slurmClient)
-	prometheus.MustRegister(slurmCollector)
+
+	collectors := []prometheus.Collector{
+		collector.NewNodeStateCollector(slurmClient),
+		collector.NewNodeTresCollector(slurmClient),
+		collector.NewJobStateCollector(slurmClient),
+		collector.NewPartitionNodeCollector(slurmClient),
+		collector.NewPartitionJobCollector(slurmClient),
+		collector.NewUserJobsCollector(slurmClient),
+	}
+	for _, collector := range collectors {
+		prometheus.MustRegister(collector)
+	}
 
 	setupLog.Info("starting exporter")
 	http.Handle("/metrics", promhttp.Handler())
