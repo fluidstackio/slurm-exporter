@@ -41,7 +41,7 @@ func parseFlags(flags *Flags) {
 	flag.StringVar(
 		&flags.Server,
 		"server",
-		"http://slurm-restapi:6820",
+		"http://localhost:6820",
 		"The server url of the cluster for the exporter to monitor.",
 	)
 	flag.DurationVar(

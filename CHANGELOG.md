@@ -15,6 +15,8 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- Changed `--server` default to localhost URL.
+
 ### Removed
 
 - Removed `--per-user-metrics` toggle, enabled automatically.
