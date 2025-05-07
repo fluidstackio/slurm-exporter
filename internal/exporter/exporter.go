@@ -29,7 +29,8 @@ var (
 	partitionLabel     = []string{"partition"}
 	nodeLabels         = []string{"node", "hostname"}
 	jobLabel           = []string{"user"}
-	jobIDLabel         = []string{"jobid", "hostname"}
+	jobIDLabel         = []string{"jobid", "nodes"}
+	allocationLabel    = []string{"jobid", "core", "socket", "hostname"}
 	combinedStateLabel = []string{"node", "hostname", "combinedState"}
 	nodeReasonLabel    = []string{"node", "hostname", "reason", "user2", "timestamp"}
 )
@@ -97,6 +98,7 @@ type JobStates struct {
 	hold       int32
 	completing int32
 	nodes      string
+	allocation api.V0041JobResNodes
 }
 
 type JobData struct {
@@ -181,6 +183,7 @@ type SlurmCollector struct {
 	jobPending               *prometheus.Desc
 	jobHold                  *prometheus.Desc
 	jobCompleting            *prometheus.Desc
+	jobAllocation            *prometheus.Desc
 	cloudNodes               *prometheus.Desc
 	dynamicFutureNodes       *prometheus.Desc
 	dynamicNormNodes         *prometheus.Desc
@@ -519,6 +522,11 @@ func (r *SlurmCollector) slurmParse(
 		}
 		userName := ptr.Deref(j.UserName, "")
 		partition := ptr.Deref(j.Partition, "")
+
+		jobDatabyID[jobID].allocation = nil
+		if j.JobResources != nil && j.JobResources.Nodes != nil && j.JobResources.Nodes.Allocation != nil {
+			jobDatabyID[jobID].allocation = *j.JobResources.Nodes.Allocation
+		}
 		if _, key := jobData[userName]; !key {
 			jobData[userName] = &JobData{}
 		}
@@ -688,6 +696,7 @@ func NewSlurmCollector(slurmClient client.Client, perUserMetrics bool) *SlurmCol
 		jobPending:               prometheus.NewDesc("slurm_job_pendings", "Job State Pending", jobIDLabel, nil),
 		jobHold:                  prometheus.NewDesc("slurm_job_hold", "Job State Hold", jobIDLabel, nil),
 		jobCompleting:            prometheus.NewDesc("slurm_job_completing", "Job State Completing", jobIDLabel, nil),
+		jobAllocation:            prometheus.NewDesc("slurm_job_allocation", "Job Allocations", allocationLabel, nil),
 	}
 }
 
@@ -777,6 +786,7 @@ func (s *SlurmCollector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- s.jobPending
 	ch <- s.jobHold
 	ch <- s.jobCompleting
+	ch <- s.jobAllocation
 }
 
 // Called by the Prometheus registry when collecting metrics.
@@ -895,6 +905,21 @@ func (s *SlurmCollector) Collect(ch chan<- prometheus.Metric) {
 		}
 	}
 	for j := range slurmData.jobstates {
+		if slurmData.jobstates[j].allocation != nil {
+			for _, allocation := range slurmData.jobstates[j].allocation {
+				for _, socket := range allocation.Sockets {
+					for _, core := range socket.Cores {
+						var alloc int
+						for _, status := range core.Status {
+							if status == "ALLOCATED" {
+								alloc = 1
+							}
+						}
+						ch <- prometheus.MustNewConstMetric(s.jobAllocation, prometheus.GaugeValue, float64(alloc), strconv.Itoa(int(j)), strconv.Itoa(int(core.Index)), strconv.Itoa(int(socket.Index)), allocation.Name)
+					}
+				}
+			}
+		}
 		ch <- prometheus.MustNewConstMetric(s.jobRunning, prometheus.GaugeValue, float64(slurmData.jobstates[j].running), strconv.Itoa(int(j)), slurmData.jobstates[j].nodes)
 		ch <- prometheus.MustNewConstMetric(s.jobPending, prometheus.GaugeValue, float64(slurmData.jobstates[j].pending), strconv.Itoa(int(j)), slurmData.jobstates[j].nodes)
 		ch <- prometheus.MustNewConstMetric(s.jobHold, prometheus.GaugeValue, float64(slurmData.jobstates[j].hold), strconv.Itoa(int(j)), slurmData.jobstates[j].nodes)
