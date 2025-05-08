@@ -184,6 +184,7 @@ var (
 		},
 		UserId:   ptr.To[int32](0),
 		UserName: ptr.To("root"),
+		Account:  ptr.To("root"),
 	}}
 	job1 = &types.V0041JobInfo{V0041JobInfo: api.V0041JobInfo{
 		JobId:     ptr.To[int32](1),
@@ -241,7 +242,8 @@ var (
 				},
 			},
 		},
-		UserId: ptr.To[int32](1000),
+		UserId:  ptr.To[int32](1000),
+		Account: ptr.To("root"),
 	}}
 	job3 = &types.V0041JobInfo{V0041JobInfo: api.V0041JobInfo{
 		JobId:     ptr.To[int32](3),

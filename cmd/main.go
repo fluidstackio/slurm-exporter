@@ -75,6 +75,7 @@ func main() {
 		collector.NewJobStateCollector(slurmClient),
 		collector.NewPartitionNodeCollector(slurmClient),
 		collector.NewPartitionJobCollector(slurmClient),
+		collector.NewAccountJobsCollector(slurmClient),
 		collector.NewUserJobsCollector(slurmClient),
 	}
 	for _, collector := range collectors {

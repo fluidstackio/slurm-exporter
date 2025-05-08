@@ -10,6 +10,7 @@ All notable changes to this project will be documented in this file.
 - Added option to set `--zap-log-level`.
 - Added more data fields to existing collections -- expanded node and job
   states, memory usage.
+- Added accounting data collection -- job states, TRES usage.
 
 ### Fixed
 

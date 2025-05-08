@@ -4,6 +4,8 @@
 package collector
 
 var (
+	accountLabels = []string{"account"}
+
 	userLabels = []string{"userid", "username"}
 
 	nodeLabels = []string{"node"}
