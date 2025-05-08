@@ -84,31 +84,36 @@ func (c *userJobsCollector) Collect(ch chan<- prometheus.Metric) {
 		return
 	}
 
-	for user, usage := range metrics {
+	for userCtx, usage := range metrics {
 		// States
-		ch <- prometheus.MustNewConstMetric(c.Total, prometheus.GaugeValue, float64(usage.Total), user)
-		ch <- prometheus.MustNewConstMetric(c.BootFail, prometheus.GaugeValue, float64(usage.BootFail), user)
-		ch <- prometheus.MustNewConstMetric(c.Cancelled, prometheus.GaugeValue, float64(usage.Cancelled), user)
-		ch <- prometheus.MustNewConstMetric(c.Completed, prometheus.GaugeValue, float64(usage.Completed), user)
-		ch <- prometheus.MustNewConstMetric(c.Deadline, prometheus.GaugeValue, float64(usage.Deadline), user)
-		ch <- prometheus.MustNewConstMetric(c.Failed, prometheus.GaugeValue, float64(usage.Failed), user)
-		ch <- prometheus.MustNewConstMetric(c.Pending, prometheus.GaugeValue, float64(usage.Pending), user)
-		ch <- prometheus.MustNewConstMetric(c.Running, prometheus.GaugeValue, float64(usage.Running), user)
-		ch <- prometheus.MustNewConstMetric(c.Suspended, prometheus.GaugeValue, float64(usage.Suspended), user)
-		ch <- prometheus.MustNewConstMetric(c.Timeout, prometheus.GaugeValue, float64(usage.Timeout), user)
-		ch <- prometheus.MustNewConstMetric(c.NodeFail, prometheus.GaugeValue, float64(usage.NodeFail), user)
-		ch <- prometheus.MustNewConstMetric(c.OutOfMemory, prometheus.GaugeValue, float64(usage.OutOfMemory), user)
-		ch <- prometheus.MustNewConstMetric(c.Completing, prometheus.GaugeValue, float64(usage.Completing), user)
-		ch <- prometheus.MustNewConstMetric(c.Configuring, prometheus.GaugeValue, float64(usage.Configuring), user)
-		ch <- prometheus.MustNewConstMetric(c.PowerUpNode, prometheus.GaugeValue, float64(usage.PowerUpNode), user)
-		ch <- prometheus.MustNewConstMetric(c.Hold, prometheus.GaugeValue, float64(usage.Hold), user)
+		ch <- prometheus.MustNewConstMetric(c.Total, prometheus.GaugeValue, float64(usage.Total), userCtx.UserId, userCtx.UserName)
+		ch <- prometheus.MustNewConstMetric(c.BootFail, prometheus.GaugeValue, float64(usage.BootFail), userCtx.UserId, userCtx.UserName)
+		ch <- prometheus.MustNewConstMetric(c.Cancelled, prometheus.GaugeValue, float64(usage.Cancelled), userCtx.UserId, userCtx.UserName)
+		ch <- prometheus.MustNewConstMetric(c.Completed, prometheus.GaugeValue, float64(usage.Completed), userCtx.UserId, userCtx.UserName)
+		ch <- prometheus.MustNewConstMetric(c.Deadline, prometheus.GaugeValue, float64(usage.Deadline), userCtx.UserId, userCtx.UserName)
+		ch <- prometheus.MustNewConstMetric(c.Failed, prometheus.GaugeValue, float64(usage.Failed), userCtx.UserId, userCtx.UserName)
+		ch <- prometheus.MustNewConstMetric(c.Pending, prometheus.GaugeValue, float64(usage.Pending), userCtx.UserId, userCtx.UserName)
+		ch <- prometheus.MustNewConstMetric(c.Running, prometheus.GaugeValue, float64(usage.Running), userCtx.UserId, userCtx.UserName)
+		ch <- prometheus.MustNewConstMetric(c.Suspended, prometheus.GaugeValue, float64(usage.Suspended), userCtx.UserId, userCtx.UserName)
+		ch <- prometheus.MustNewConstMetric(c.Timeout, prometheus.GaugeValue, float64(usage.Timeout), userCtx.UserId, userCtx.UserName)
+		ch <- prometheus.MustNewConstMetric(c.NodeFail, prometheus.GaugeValue, float64(usage.NodeFail), userCtx.UserId, userCtx.UserName)
+		ch <- prometheus.MustNewConstMetric(c.OutOfMemory, prometheus.GaugeValue, float64(usage.OutOfMemory), userCtx.UserId, userCtx.UserName)
+		ch <- prometheus.MustNewConstMetric(c.Completing, prometheus.GaugeValue, float64(usage.Completing), userCtx.UserId, userCtx.UserName)
+		ch <- prometheus.MustNewConstMetric(c.Configuring, prometheus.GaugeValue, float64(usage.Configuring), userCtx.UserId, userCtx.UserName)
+		ch <- prometheus.MustNewConstMetric(c.PowerUpNode, prometheus.GaugeValue, float64(usage.PowerUpNode), userCtx.UserId, userCtx.UserName)
+		ch <- prometheus.MustNewConstMetric(c.Hold, prometheus.GaugeValue, float64(usage.Hold), userCtx.UserId, userCtx.UserName)
 		// Tres
-		ch <- prometheus.MustNewConstMetric(c.CpusAlloc, prometheus.GaugeValue, float64(usage.CpusAlloc), user)
-		ch <- prometheus.MustNewConstMetric(c.MemoryAlloc, prometheus.GaugeValue, float64(usage.MemoryAlloc), user)
+		ch <- prometheus.MustNewConstMetric(c.CpusAlloc, prometheus.GaugeValue, float64(usage.CpusAlloc), userCtx.UserId, userCtx.UserName)
+		ch <- prometheus.MustNewConstMetric(c.MemoryAlloc, prometheus.GaugeValue, float64(usage.MemoryAlloc), userCtx.UserId, userCtx.UserName)
 	}
 }
 
-func (c *userJobsCollector) getUserJobs(ctx context.Context) (map[string]*UserJobs, error) {
+type UserContext struct {
+	UserId   string
+	UserName string
+}
+
+func (c *userJobsCollector) getUserJobs(ctx context.Context) (map[UserContext]*UserJobs, error) {
 	jobList := &types.V0041JobInfoList{}
 	if err := c.slurmClient.List(ctx, jobList); err != nil {
 		return nil, err
@@ -117,20 +122,20 @@ func (c *userJobsCollector) getUserJobs(ctx context.Context) (map[string]*UserJo
 	return metrics, nil
 }
 
-func parseUserJobs(jobList *types.V0041JobInfoList) map[string]*UserJobs {
-	metrics := make(map[string]*UserJobs)
+func parseUserJobs(jobList *types.V0041JobInfoList) map[UserContext]*UserJobs {
+	metrics := make(map[UserContext]*UserJobs)
 	for _, job := range jobList.Items {
-		var key string = strconv.Itoa(int(*job.UserId))
-		if ptr.Deref(job.UserName, "") != "" {
-			key = *job.UserName
+		userCtx := UserContext{
+			UserId:   strconv.Itoa(int(ptr.Deref(job.UserId, 0))),
+			UserName: ptr.Deref(job.UserName, ""),
 		}
-		if metrics[key] == nil {
-			metrics[key] = &UserJobs{}
+		if metrics[userCtx] == nil {
+			metrics[userCtx] = &UserJobs{}
 		}
-		parseJobState(&metrics[key].JobStates, job)
+		parseJobState(&metrics[userCtx].JobStates, job)
 		res := getJobResourceAlloc(job)
-		metrics[key].CpusAlloc += res.Cpus
-		metrics[key].MemoryAlloc += res.Memory
+		metrics[userCtx].CpusAlloc += res.Cpus
+		metrics[userCtx].MemoryAlloc += res.Memory
 	}
 	return metrics
 }
