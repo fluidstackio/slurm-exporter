@@ -11,13 +11,14 @@ import (
 	"github.com/SlinkyProject/slurm-client/pkg/client"
 	"github.com/SlinkyProject/slurm-client/pkg/client/fake"
 	"github.com/SlinkyProject/slurm-client/pkg/types"
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
-	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/utils/ptr"
 )
 
-func Test_parseNodeState(t *testing.T) {
+func Test_calculateNodeState(t *testing.T) {
 	type args struct {
 		node types.V0041Node
 	}
@@ -28,7 +29,7 @@ func Test_parseNodeState(t *testing.T) {
 	}{
 		{
 			name: "empty",
-			want: &NodeStates{Total: 1},
+			want: &NodeStates{},
 		},
 		{
 			name: "allocated",
@@ -39,7 +40,7 @@ func Test_parseNodeState(t *testing.T) {
 					}),
 				}},
 			},
-			want: &NodeStates{Total: 1, Allocated: 1},
+			want: &NodeStates{Allocated: 1},
 		},
 		{
 			name: "down",
@@ -50,7 +51,7 @@ func Test_parseNodeState(t *testing.T) {
 					}),
 				}},
 			},
-			want: &NodeStates{Total: 1, Down: 1},
+			want: &NodeStates{Down: 1},
 		},
 		{
 			name: "error",
@@ -61,7 +62,7 @@ func Test_parseNodeState(t *testing.T) {
 					}),
 				}},
 			},
-			want: &NodeStates{Total: 1, Error: 1},
+			want: &NodeStates{Error: 1},
 		},
 		{
 			name: "future",
@@ -72,7 +73,7 @@ func Test_parseNodeState(t *testing.T) {
 					}),
 				}},
 			},
-			want: &NodeStates{Total: 1, Future: 1},
+			want: &NodeStates{Future: 1},
 		},
 		{
 			name: "idle",
@@ -83,7 +84,7 @@ func Test_parseNodeState(t *testing.T) {
 					}),
 				}},
 			},
-			want: &NodeStates{Total: 1, Idle: 1},
+			want: &NodeStates{Idle: 1},
 		},
 		{
 			name: "mixed",
@@ -94,7 +95,7 @@ func Test_parseNodeState(t *testing.T) {
 					}),
 				}},
 			},
-			want: &NodeStates{Total: 1, Mixed: 1},
+			want: &NodeStates{Mixed: 1},
 		},
 		{
 			name: "unknown",
@@ -105,7 +106,7 @@ func Test_parseNodeState(t *testing.T) {
 					}),
 				}},
 			},
-			want: &NodeStates{Total: 1, Unknown: 1},
+			want: &NodeStates{Unknown: 1},
 		},
 		{
 			name: "all states, all flags",
@@ -146,7 +147,6 @@ func Test_parseNodeState(t *testing.T) {
 				}},
 			},
 			want: &NodeStates{
-				Total:           1,
 				Allocated:       1,
 				Completing:      1,
 				Drain:           1,
@@ -162,15 +162,100 @@ func Test_parseNodeState(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			metrics := &NodeStates{}
-			parseNodeState(metrics, tt.args.node)
-			if !apiequality.Semantic.DeepEqual(metrics, tt.want) {
-				t.Errorf("parseNodeState() = %v, want %v", metrics, tt.want)
+			calculateNodeState(metrics, tt.args.node)
+			opts := []cmp.Option{
+				cmpopts.IgnoreUnexported(NodeMetrics{}),
+				cmpopts.IgnoreFields(NodeStates{}, "total"),
+			}
+			if diff := cmp.Diff(tt.want, metrics, opts...); diff != "" {
+				t.Errorf("calculateNodeState() = (-want,+got):\n%s", diff)
 			}
 		})
 	}
 }
 
-func TestNodeStateCollector_getNodeStates(t *testing.T) {
+func Test_calculateNodeTres(t *testing.T) {
+	type args struct {
+		node types.V0041Node
+	}
+	tests := []struct {
+		name string
+		args args
+		want *NodeTres
+	}{
+		{
+			name: "empty",
+			want: &NodeTres{},
+		},
+		{
+			name: "node0",
+			args: args{
+				node: *node0,
+			},
+			want: &NodeTres{
+				CpusTotal:   16,
+				CpusIdle:    16,
+				MemoryTotal: 4096,
+				MemoryFree:  4096,
+			},
+		},
+		{
+			name: "node1",
+			args: args{
+				node: *node1,
+			},
+			want: &NodeTres{
+				CpusTotal:   8,
+				CpusAlloc:   8,
+				MemoryTotal: 2048,
+				MemoryAlloc: 2000,
+				MemoryFree:  48,
+			},
+		},
+		{
+			name: "node2",
+			args: args{
+				node: *node2,
+			},
+			want: &NodeTres{
+				CpusTotal:   16,
+				CpusAlloc:   16,
+				MemoryTotal: 4096,
+				MemoryAlloc: 3000,
+				MemoryFree:  1096,
+			},
+		},
+		{
+			name: "node3",
+			args: args{
+				node: *node3,
+			},
+			want: &NodeTres{
+				CpusTotal:   6,
+				CpusAlloc:   4,
+				CpusIdle:    2,
+				MemoryTotal: 1024,
+				MemoryAlloc: 800,
+				MemoryFree:  224,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			metrics := &NodeTres{}
+			calculateNodeTres(metrics, tt.args.node)
+			opts := []cmp.Option{
+				cmpopts.IgnoreUnexported(NodeMetrics{}),
+				cmpopts.IgnoreFields(NodeTres{}, "total"),
+			}
+			if diff := cmp.Diff(tt.want, metrics, opts...); diff != "" {
+				t.Errorf("calculateNodeTres() = (-want,+got):\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestNodeCollector_getNodeMetrics(t *testing.T) {
 	type fields struct {
 		slurmClient client.Client
 	}
@@ -181,7 +266,7 @@ func TestNodeStateCollector_getNodeStates(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		want    *NodeStates
+		want    *NodeCollectorMetrics
 		wantErr bool
 	}{
 		{
@@ -192,7 +277,9 @@ func TestNodeStateCollector_getNodeStates(t *testing.T) {
 			args: args{
 				ctx: context.TODO(),
 			},
-			want: &NodeStates{},
+			want: &NodeCollectorMetrics{
+				NodeTresPer: map[string]*NodeTres{},
+			},
 		},
 		{
 			name: "test data",
@@ -202,13 +289,55 @@ func TestNodeStateCollector_getNodeStates(t *testing.T) {
 			args: args{
 				ctx: context.TODO(),
 			},
-			want: &NodeStates{
-				Total:      4,
-				Allocated:  2,
-				Idle:       1,
-				Mixed:      1,
-				Completing: 1,
-				Drain:      1,
+			want: &NodeCollectorMetrics{
+				NodeMetrics: NodeMetrics{
+					NodeCount: 4,
+					NodeStates: NodeStates{
+						Allocated:  2,
+						Idle:       1,
+						Mixed:      1,
+						Completing: 1,
+						Drain:      1,
+					},
+					NodeTres: NodeTres{
+						CpusTotal:   46,
+						CpusAlloc:   28,
+						CpusIdle:    18,
+						MemoryTotal: 11264,
+						MemoryAlloc: 5800,
+						MemoryFree:  5464,
+					},
+				},
+				NodeTresPer: map[string]*NodeTres{
+					"node0": {
+						CpusTotal:   16,
+						CpusIdle:    16,
+						MemoryTotal: 4096,
+						MemoryFree:  4096,
+					},
+					"node1": {
+						CpusTotal:   8,
+						CpusAlloc:   8,
+						MemoryTotal: 2048,
+						MemoryAlloc: 2000,
+						MemoryFree:  48,
+					},
+					"node2": {
+						CpusTotal:   16,
+						CpusAlloc:   16,
+						MemoryTotal: 4096,
+						MemoryAlloc: 3000,
+						MemoryFree:  1096,
+					},
+					"node3": {
+						CpusTotal:   6,
+						CpusAlloc:   4,
+						CpusIdle:    2,
+						MemoryTotal: 1024,
+						MemoryAlloc: 800,
+						MemoryFree:  224,
+					},
+				},
 			},
 		},
 		{
@@ -225,22 +354,27 @@ func TestNodeStateCollector_getNodeStates(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := &nodeStateCollector{
+			c := &nodeCollector{
 				slurmClient: tt.fields.slurmClient,
 			}
-			got, err := c.getNodeStates(tt.args.ctx)
+			got, err := c.getNodeMetrics(tt.args.ctx)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("nodeStateCollector.getNodeStates() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("nodeCollector.getNodeMetrics() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !apiequality.Semantic.DeepEqual(got, tt.want) {
-				t.Errorf("nodeStateCollector.getNodeStates() = %v, want %v", got, tt.want)
+			opts := []cmp.Option{
+				cmpopts.IgnoreUnexported(NodeMetrics{}),
+				cmpopts.IgnoreFields(NodeStates{}, "total"),
+				cmpopts.IgnoreFields(NodeTres{}, "total"),
+			}
+			if diff := cmp.Diff(tt.want, got, opts...); diff != "" {
+				t.Errorf("nodeCollector.getNodeMetrics() = (-want,+got):\n%s", diff)
 			}
 		})
 	}
 }
 
-func TestNodeStateCollector_Collect(t *testing.T) {
+func TestNodeCollector_Collect(t *testing.T) {
 	type fields struct {
 		slurmClient client.Client
 	}
@@ -284,7 +418,7 @@ func TestNodeStateCollector_Collect(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := NewNodeStateCollector(tt.fields.slurmClient)
+			c := NewNodeCollector(tt.fields.slurmClient)
 			go func() {
 				c.Collect(tt.args.ch)
 				close(tt.args.ch)
@@ -302,7 +436,7 @@ func TestNodeStateCollector_Collect(t *testing.T) {
 	}
 }
 
-func TestNodeStateCollector_Describe(t *testing.T) {
+func TestNodeCollector_Describe(t *testing.T) {
 	type fields struct {
 		slurmClient client.Client
 	}
@@ -326,7 +460,7 @@ func TestNodeStateCollector_Describe(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := NewNodeStateCollector(tt.fields.slurmClient)
+			c := NewNodeCollector(tt.fields.slurmClient)
 			go func() {
 				c.Describe(tt.args.ch)
 				close(tt.args.ch)

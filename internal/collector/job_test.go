@@ -11,13 +11,61 @@ import (
 	"github.com/SlinkyProject/slurm-client/pkg/client"
 	"github.com/SlinkyProject/slurm-client/pkg/client/fake"
 	"github.com/SlinkyProject/slurm-client/pkg/types"
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/utils/ptr"
 )
 
-func Test_parseJobState(t *testing.T) {
+func Test_getJobResourceAlloc(t *testing.T) {
+	type args struct {
+		job types.V0041JobInfo
+	}
+	tests := []struct {
+		name string
+		args args
+		want jobResources
+	}{
+		{
+			name: "empty",
+			args: args{
+				job: types.V0041JobInfo{},
+			},
+			want: jobResources{},
+		},
+		{
+			name: "test job 0",
+			args: args{
+				job: *job0,
+			},
+			want: jobResources{
+				Cpus:   8,
+				Memory: 1024,
+			},
+		},
+		{
+			name: "test job 2",
+			args: args{
+				job: *job2,
+			},
+			want: jobResources{
+				Cpus:   12,
+				Memory: 3072,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := getJobResourceAlloc(tt.args.job); !apiequality.Semantic.DeepEqual(got, tt.want) {
+				t.Errorf("getJobResourceAlloc() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_calculateJobState(t *testing.T) {
 	type args struct {
 		job types.V0041JobInfo
 	}
@@ -28,7 +76,7 @@ func Test_parseJobState(t *testing.T) {
 	}{
 		{
 			name: "empty",
-			want: &JobStates{Total: 1},
+			want: &JobStates{},
 		},
 		{
 			name: "boot fail",
@@ -39,7 +87,7 @@ func Test_parseJobState(t *testing.T) {
 					}),
 				}},
 			},
-			want: &JobStates{Total: 1, BootFail: 1},
+			want: &JobStates{BootFail: 1},
 		},
 		{
 			name: "cancelled",
@@ -50,7 +98,7 @@ func Test_parseJobState(t *testing.T) {
 					}),
 				}},
 			},
-			want: &JobStates{Total: 1, Cancelled: 1},
+			want: &JobStates{Cancelled: 1},
 		},
 		{
 			name: "completed",
@@ -61,7 +109,7 @@ func Test_parseJobState(t *testing.T) {
 					}),
 				}},
 			},
-			want: &JobStates{Total: 1, Completed: 1},
+			want: &JobStates{Completed: 1},
 		},
 		{
 			name: "deadline",
@@ -72,7 +120,7 @@ func Test_parseJobState(t *testing.T) {
 					}),
 				}},
 			},
-			want: &JobStates{Total: 1, Deadline: 1},
+			want: &JobStates{Deadline: 1},
 		},
 		{
 			name: "failed",
@@ -83,7 +131,7 @@ func Test_parseJobState(t *testing.T) {
 					}),
 				}},
 			},
-			want: &JobStates{Total: 1, Failed: 1},
+			want: &JobStates{Failed: 1},
 		},
 		{
 			name: "pending",
@@ -94,7 +142,7 @@ func Test_parseJobState(t *testing.T) {
 					}),
 				}},
 			},
-			want: &JobStates{Total: 1, Pending: 1},
+			want: &JobStates{Pending: 1},
 		},
 		{
 			name: "preempted",
@@ -105,7 +153,7 @@ func Test_parseJobState(t *testing.T) {
 					}),
 				}},
 			},
-			want: &JobStates{Total: 1, Preempted: 1},
+			want: &JobStates{Preempted: 1},
 		},
 		{
 			name: "running",
@@ -116,7 +164,7 @@ func Test_parseJobState(t *testing.T) {
 					}),
 				}},
 			},
-			want: &JobStates{Total: 1, Running: 1},
+			want: &JobStates{Running: 1},
 		},
 		{
 			name: "suspended",
@@ -127,7 +175,7 @@ func Test_parseJobState(t *testing.T) {
 					}),
 				}},
 			},
-			want: &JobStates{Total: 1, Suspended: 1},
+			want: &JobStates{Suspended: 1},
 		},
 		{
 			name: "timeout",
@@ -138,7 +186,7 @@ func Test_parseJobState(t *testing.T) {
 					}),
 				}},
 			},
-			want: &JobStates{Total: 1, Timeout: 1},
+			want: &JobStates{Timeout: 1},
 		},
 		{
 			name: "node fail",
@@ -149,7 +197,7 @@ func Test_parseJobState(t *testing.T) {
 					}),
 				}},
 			},
-			want: &JobStates{Total: 1, NodeFail: 1},
+			want: &JobStates{NodeFail: 1},
 		},
 		{
 			name: "out of memory",
@@ -160,7 +208,7 @@ func Test_parseJobState(t *testing.T) {
 					}),
 				}},
 			},
-			want: &JobStates{Total: 1, OutOfMemory: 1},
+			want: &JobStates{OutOfMemory: 1},
 		},
 		{
 			name: "all states, all flags",
@@ -200,7 +248,6 @@ func Test_parseJobState(t *testing.T) {
 				}},
 			},
 			want: &JobStates{
-				Total:       1,
 				BootFail:    1,
 				Completing:  1,
 				Configuring: 1,
@@ -213,15 +260,18 @@ func Test_parseJobState(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			metrics := &JobStates{}
-			parseJobState(metrics, tt.args.job)
-			if !apiequality.Semantic.DeepEqual(metrics, tt.want) {
-				t.Errorf("parseJobState() metrics = %v, want %v", metrics, tt.want)
+			calculateJobState(metrics, tt.args.job)
+			opts := []cmp.Option{
+				cmpopts.IgnoreUnexported(JobStates{}),
+			}
+			if diff := cmp.Diff(tt.want, metrics, opts...); diff != "" {
+				t.Errorf("calculateJobState() = (-want,+got):\n%s", diff)
 			}
 		})
 	}
 }
 
-func TestJobStateCollector_getJobStates(t *testing.T) {
+func TestJobCollector_getJobMetrics(t *testing.T) {
 	type fields struct {
 		slurmClient client.Client
 	}
@@ -232,7 +282,7 @@ func TestJobStateCollector_getJobStates(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		want    *JobStates
+		want    *JobMetrics
 		wantErr bool
 	}{
 		{
@@ -243,7 +293,7 @@ func TestJobStateCollector_getJobStates(t *testing.T) {
 			args: args{
 				ctx: context.TODO(),
 			},
-			want: &JobStates{},
+			want: &JobMetrics{},
 		},
 		{
 			name: "test data",
@@ -253,11 +303,10 @@ func TestJobStateCollector_getJobStates(t *testing.T) {
 			args: args{
 				ctx: context.TODO(),
 			},
-			want: &JobStates{
-				Total:   4,
-				Pending: 2,
-				Running: 2,
-				Hold:    1,
+			want: &JobMetrics{
+				JobCount:  4,
+				JobStates: JobStates{Pending: 2, Running: 2, Hold: 1},
+				JobTres:   JobTres{CpusAlloc: 20, MemoryAlloc: 4096},
 			},
 		},
 		{
@@ -274,22 +323,27 @@ func TestJobStateCollector_getJobStates(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := &jobStateCollector{
+			c := &jobCollector{
 				slurmClient: tt.fields.slurmClient,
 			}
-			got, err := c.getJobStates(tt.args.ctx)
+			got, err := c.getJobMetrics(tt.args.ctx)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("jobStateCollector.getJobStates() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("jobCollector.getJobMetrics() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !apiequality.Semantic.DeepEqual(got, tt.want) {
-				t.Errorf("jobStateCollector.getJobStates() = %v, want %v", got, tt.want)
+			opts := []cmp.Option{
+				cmpopts.IgnoreUnexported(JobMetrics{}),
+				cmpopts.IgnoreFields(JobStates{}, "total"),
+				cmpopts.IgnoreFields(JobTres{}, "total"),
+			}
+			if diff := cmp.Diff(tt.want, got, opts...); diff != "" {
+				t.Errorf("jobCollector.getJobMetrics() = (-want,+got):\n%s", diff)
 			}
 		})
 	}
 }
 
-func TestJobStateCollector_Collect(t *testing.T) {
+func TestJobCollector_Collect(t *testing.T) {
 	type fields struct {
 		slurmClient client.Client
 	}
@@ -333,7 +387,7 @@ func TestJobStateCollector_Collect(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := NewJobStateCollector(tt.fields.slurmClient)
+			c := NewJobCollector(tt.fields.slurmClient)
 			go func() {
 				c.Collect(tt.args.ch)
 				close(tt.args.ch)
@@ -351,7 +405,7 @@ func TestJobStateCollector_Collect(t *testing.T) {
 	}
 }
 
-func TestJobStateCollector_Describe(t *testing.T) {
+func TestJobCollector_Describe(t *testing.T) {
 	type fields struct {
 		slurmClient client.Client
 	}
@@ -375,7 +429,7 @@ func TestJobStateCollector_Describe(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := NewJobStateCollector(tt.fields.slurmClient)
+			c := NewJobCollector(tt.fields.slurmClient)
 			go func() {
 				c.Describe(tt.args.ch)
 				close(tt.args.ch)

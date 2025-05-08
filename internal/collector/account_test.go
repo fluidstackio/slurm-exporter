@@ -10,11 +10,12 @@ import (
 	"github.com/SlinkyProject/slurm-client/pkg/client"
 	"github.com/SlinkyProject/slurm-client/pkg/client/fake"
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestPartitionNodeCollector_getPartitionNode(t *testing.T) {
+func TestAccountCollector_getAccountMetrics(t *testing.T) {
 	type fields struct {
 		slurmClient client.Client
 	}
@@ -25,7 +26,7 @@ func TestPartitionNodeCollector_getPartitionNode(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		want    map[string]*PartitionNodes
+		want    *AccountMetrics
 		wantErr bool
 	}{
 		{
@@ -36,7 +37,9 @@ func TestPartitionNodeCollector_getPartitionNode(t *testing.T) {
 			args: args{
 				ctx: context.TODO(),
 			},
-			want: make(map[string]*PartitionNodes),
+			want: &AccountMetrics{
+				JobMetricsPer: make(map[string]*JobMetrics),
+			},
 		},
 		{
 			name: "test data",
@@ -46,24 +49,17 @@ func TestPartitionNodeCollector_getPartitionNode(t *testing.T) {
 			args: args{
 				ctx: context.TODO(),
 			},
-			want: map[string]*PartitionNodes{
-				*partition1.Name: {
-					Total:       3,
-					CpusTotal:   40,
-					CpusAlloc:   24,
-					CpusIdle:    16,
-					MemoryTotal: 10240,
-					MemoryAlloc: 5000,
-					MemoryFree:  5240,
-				},
-				*partition2.Name: {
-					Total:       3,
-					CpusTotal:   30,
-					CpusAlloc:   28,
-					CpusIdle:    2,
-					MemoryTotal: 7168,
-					MemoryAlloc: 5800,
-					MemoryFree:  1368,
+			want: &AccountMetrics{
+				JobMetricsPer: map[string]*JobMetrics{
+					"": {
+						JobCount:  2,
+						JobStates: JobStates{Pending: 2, Hold: 1},
+					},
+					"root": {
+						JobCount:  2,
+						JobStates: JobStates{Running: 2},
+						JobTres:   JobTres{CpusAlloc: 20, MemoryAlloc: 4096},
+					},
 				},
 			},
 		},
@@ -81,22 +77,27 @@ func TestPartitionNodeCollector_getPartitionNode(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := &partitionNodeCollector{
+			c := &accountCollector{
 				slurmClient: tt.fields.slurmClient,
 			}
-			got, err := c.getPartitionNode(tt.args.ctx)
+			got, err := c.getAccountMetrics(tt.args.ctx)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("partitionNodeCollector.getPartitionNode() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("accountCollector.getAccountMetrics() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if diff := cmp.Diff(tt.want, got, cmp.AllowUnexported(PartitionNodes{})); diff != "" {
-				t.Errorf("partitionNodeCollector.getPartitionNode() = (-want,+got):\n%s", diff)
+			opts := []cmp.Option{
+				cmpopts.IgnoreUnexported(AccountMetrics{}),
+				cmpopts.IgnoreFields(JobStates{}, "total"),
+				cmpopts.IgnoreFields(JobTres{}, "total"),
+			}
+			if diff := cmp.Diff(tt.want, got, opts...); diff != "" {
+				t.Errorf("accountCollector.getAccountMetrics() = (-want,+got):\n%s", diff)
 			}
 		})
 	}
 }
 
-func TestPartitionNodeCollector_Collect(t *testing.T) {
+func TestAccountCollector_Collect(t *testing.T) {
 	type fields struct {
 		slurmClient client.Client
 	}
@@ -140,7 +141,7 @@ func TestPartitionNodeCollector_Collect(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := NewPartitionNodeCollector(tt.fields.slurmClient)
+			c := NewAccountCollector(tt.fields.slurmClient)
 			go func() {
 				c.Collect(tt.args.ch)
 				close(tt.args.ch)
@@ -158,7 +159,7 @@ func TestPartitionNodeCollector_Collect(t *testing.T) {
 	}
 }
 
-func TestPartitionNodeCollector_Describe(t *testing.T) {
+func TestAccountCollector_Describe(t *testing.T) {
 	type fields struct {
 		slurmClient client.Client
 	}
@@ -182,7 +183,7 @@ func TestPartitionNodeCollector_Describe(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := NewPartitionNodeCollector(tt.fields.slurmClient)
+			c := NewAccountCollector(tt.fields.slurmClient)
 			go func() {
 				c.Describe(tt.args.ch)
 				close(tt.args.ch)

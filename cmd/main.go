@@ -70,13 +70,11 @@ func main() {
 	}
 
 	collectors := []prometheus.Collector{
-		collector.NewNodeStateCollector(slurmClient),
-		collector.NewNodeTresCollector(slurmClient),
-		collector.NewJobStateCollector(slurmClient),
-		collector.NewPartitionNodeCollector(slurmClient),
-		collector.NewPartitionJobCollector(slurmClient),
-		collector.NewAccountJobsCollector(slurmClient),
-		collector.NewUserJobsCollector(slurmClient),
+		collector.NewNodeCollector(slurmClient),
+		collector.NewJobCollector(slurmClient),
+		collector.NewPartitionCollector(slurmClient),
+		collector.NewAccountCollector(slurmClient),
+		collector.NewUserCollector(slurmClient),
 	}
 	for _, collector := range collectors {
 		prometheus.MustRegister(collector)

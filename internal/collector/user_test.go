@@ -10,11 +10,12 @@ import (
 	"github.com/SlinkyProject/slurm-client/pkg/client"
 	"github.com/SlinkyProject/slurm-client/pkg/client/fake"
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestAccountJobsCollector_getAccountJobs(t *testing.T) {
+func TestUserCollector_getUserMetrics(t *testing.T) {
 	type fields struct {
 		slurmClient client.Client
 	}
@@ -25,7 +26,7 @@ func TestAccountJobsCollector_getAccountJobs(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		want    map[string]*AccountJobs
+		want    *UserMetrics
 		wantErr bool
 	}{
 		{
@@ -36,7 +37,9 @@ func TestAccountJobsCollector_getAccountJobs(t *testing.T) {
 			args: args{
 				ctx: context.TODO(),
 			},
-			want: make(map[string]*AccountJobs),
+			want: &UserMetrics{
+				JobMetricsPer: make(map[UserContext]*JobMetrics),
+			},
 		},
 		{
 			name: "test data",
@@ -46,12 +49,18 @@ func TestAccountJobsCollector_getAccountJobs(t *testing.T) {
 			args: args{
 				ctx: context.TODO(),
 			},
-			want: map[string]*AccountJobs{
-				"": {JobStates: JobStates{Total: 2, Pending: 2, Hold: 1}},
-				"root": {
-					JobStates:   JobStates{Total: 2, Running: 2},
-					CpusAlloc:   20,
-					MemoryAlloc: 4096,
+			want: &UserMetrics{
+				JobMetricsPer: map[UserContext]*JobMetrics{
+					{UserId: "0", UserName: "root"}: {
+						JobCount:  2,
+						JobStates: JobStates{Pending: 1, Running: 1, Hold: 1},
+						JobTres:   JobTres{CpusAlloc: 8, MemoryAlloc: 1024},
+					},
+					{UserId: "1000"}: {
+						JobCount:  2,
+						JobStates: JobStates{Pending: 1, Running: 1},
+						JobTres:   JobTres{CpusAlloc: 12, MemoryAlloc: 3072},
+					},
 				},
 			},
 		},
@@ -69,22 +78,27 @@ func TestAccountJobsCollector_getAccountJobs(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := &accountJobsCollector{
+			c := &userCollector{
 				slurmClient: tt.fields.slurmClient,
 			}
-			got, err := c.getAccountJobs(tt.args.ctx)
+			got, err := c.getUserMetrics(tt.args.ctx)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("accountJobsCollector.getAccountJobs() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("userCollector.getUserMetrics() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if diff := cmp.Diff(tt.want, got, cmp.AllowUnexported(JobStates{})); diff != "" {
-				t.Errorf("accountJobsCollector.getAccountJobs() = (-want,+got):\n%s", diff)
+			opts := []cmp.Option{
+				cmpopts.IgnoreUnexported(UserMetrics{}),
+				cmpopts.IgnoreFields(JobStates{}, "total"),
+				cmpopts.IgnoreFields(JobTres{}, "total"),
+			}
+			if diff := cmp.Diff(tt.want, got, opts...); diff != "" {
+				t.Errorf("userCollector.getUserMetrics() = (-want,+got):\n%s", diff)
 			}
 		})
 	}
 }
 
-func TestAccountJobsCollector_Collect(t *testing.T) {
+func TestUserCollector_Collect(t *testing.T) {
 	type fields struct {
 		slurmClient client.Client
 	}
@@ -128,7 +142,7 @@ func TestAccountJobsCollector_Collect(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := NewAccountJobsCollector(tt.fields.slurmClient)
+			c := NewUserCollector(tt.fields.slurmClient)
 			go func() {
 				c.Collect(tt.args.ch)
 				close(tt.args.ch)
@@ -146,7 +160,7 @@ func TestAccountJobsCollector_Collect(t *testing.T) {
 	}
 }
 
-func TestAccountJobsCollector_Describe(t *testing.T) {
+func TestUserCollector_Describe(t *testing.T) {
 	type fields struct {
 		slurmClient client.Client
 	}
@@ -170,7 +184,7 @@ func TestAccountJobsCollector_Describe(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := NewAccountJobsCollector(tt.fields.slurmClient)
+			c := NewUserCollector(tt.fields.slurmClient)
 			go func() {
 				c.Describe(tt.args.ch)
 				close(tt.args.ch)

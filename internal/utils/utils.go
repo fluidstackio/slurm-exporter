@@ -5,8 +5,14 @@ package utils
 
 import (
 	"slices"
+	"strings"
 )
 
-func PruneEmpty(list []string) []string {
+func ParseCSV(in string) []string {
+	list := strings.Split(in, ",")
+	return pruneEmpty(list)
+}
+
+func pruneEmpty(list []string) []string {
 	return slices.DeleteFunc(list, func(s string) bool { return s == "" })
 }
