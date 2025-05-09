@@ -36,6 +36,10 @@ spec:
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}{{- /* with .Values.exporter.affinity */}}
+      {{- with .Values.exporter.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}{{- /* with .Values.exporter.tolerations */}}
       {{- include "slurm-exporter.imagePullSecrets" . | nindent 6 }}
       containers:
         - name: metrics
