@@ -26,13 +26,13 @@ import (
 )
 
 var (
-	partitionLabel     = []string{"partition"}
-	nodeLabels         = []string{"node", "hostname"}
-	jobLabel           = []string{"user"}
-	jobIDLabel         = []string{"jobid", "nodes"}
-	allocationLabel    = []string{"jobid", "core", "socket", "hostname"}
-	combinedStateLabel = []string{"node", "hostname", "combinedState"}
-	nodeReasonLabel    = []string{"node", "hostname", "reason", "user2", "timestamp"}
+	partitionLabel        = []string{"partition"}
+	nodeLabels            = []string{"node", "hostname"}
+	jobLabel              = []string{"user"}
+	jobIDLabel            = []string{"jobid", "nodes"}
+	jobCPUAllocationLabel = []string{"jobid", "core", "socket", "hostname"}
+	combinedStateLabel    = []string{"node", "hostname", "combinedState"}
+	nodeReasonLabel       = []string{"node", "hostname", "reason", "user2", "timestamp"}
 )
 
 type PartitionData struct {
@@ -182,7 +182,7 @@ type SlurmCollector struct {
 	jobPending               *prometheus.Desc
 	jobHold                  *prometheus.Desc
 	jobCompleting            *prometheus.Desc
-	jobAllocation            *prometheus.Desc
+	jobCPUAllocation         *prometheus.Desc
 	cloudNodes               *prometheus.Desc
 	dynamicFutureNodes       *prometheus.Desc
 	dynamicNormNodes         *prometheus.Desc
@@ -694,7 +694,7 @@ func NewSlurmCollector(slurmClient client.Client) *SlurmCollector {
 		jobPending:               prometheus.NewDesc("slurm_job_pendings", "Job State Pending", jobIDLabel, nil),
 		jobHold:                  prometheus.NewDesc("slurm_job_hold", "Job State Hold", jobIDLabel, nil),
 		jobCompleting:            prometheus.NewDesc("slurm_job_completing", "Job State Completing", jobIDLabel, nil),
-		jobAllocation:            prometheus.NewDesc("slurm_job_allocation", "Job Allocations", allocationLabel, nil),
+		jobCPUAllocation:         prometheus.NewDesc("slurm_job_cpu_allocation", "Job CPU Allocation", jobCPUAllocationLabel, nil),
 	}
 }
 
@@ -784,7 +784,7 @@ func (s *SlurmCollector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- s.jobPending
 	ch <- s.jobHold
 	ch <- s.jobCompleting
-	ch <- s.jobAllocation
+	ch <- s.jobCPUAllocation
 }
 
 // Called by the Prometheus registry when collecting metrics.
@@ -889,7 +889,7 @@ func (s *SlurmCollector) Collect(ch chan<- prometheus.Metric) {
 								alloc = 1
 							}
 						}
-						ch <- prometheus.MustNewConstMetric(s.jobAllocation, prometheus.GaugeValue, float64(alloc), strconv.Itoa(int(j)), strconv.Itoa(int(core.Index)), strconv.Itoa(int(socket.Index)), allocation.Name)
+						ch <- prometheus.MustNewConstMetric(s.jobCPUAllocation, prometheus.GaugeValue, float64(alloc), strconv.Itoa(int(j)), strconv.Itoa(int(core.Index)), strconv.Itoa(int(socket.Index)), allocation.Name)
 					}
 				}
 			}
@@ -899,5 +899,4 @@ func (s *SlurmCollector) Collect(ch chan<- prometheus.Metric) {
 		ch <- prometheus.MustNewConstMetric(s.jobHold, prometheus.GaugeValue, float64(slurmData.jobstates[j].hold), strconv.Itoa(int(j)), slurmData.jobstates[j].nodes)
 		ch <- prometheus.MustNewConstMetric(s.jobCompleting, prometheus.GaugeValue, float64(slurmData.jobstates[j].completing), strconv.Itoa(int(j)), slurmData.jobstates[j].nodes)
 	}
-
 }
