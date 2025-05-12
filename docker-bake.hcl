@@ -23,3 +23,18 @@ target "exporter" {
     format_tag("${DOCKER_BAKE_REGISTRY}", "slurm-exporter", "${version}", "${DOCKER_BAKE_SUFFIX}"),
   ]
 }
+
+group "dev" {
+  targets = ["exporter-dev"]
+}
+
+target "exporter-dev" {
+  inherits = ["exporter"]
+  contexts = {
+    builder = "target:builder-dev"
+  }
+}
+
+target "builder-dev" {
+  dockerfile = "Dockerfile.dev"
+}
