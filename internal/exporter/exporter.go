@@ -702,7 +702,7 @@ func NewSlurmCollector(slurmClient client.Client) *SlurmCollector {
 		userHoldJobs:             prometheus.NewDesc("slurm_user_hold_jobs", "Number of hold jobs for a slurm user", jobLabel, nil),
 		// Job
 		jobRunning:               prometheus.NewDesc("slurm_job_running", "Job State Running", jobIDLabel, nil),
-		jobPending:               prometheus.NewDesc("slurm_job_pendings", "Job State Pending", jobIDLabel, nil),
+		jobPending:               prometheus.NewDesc("slurm_job_pending", "Job State Pending", jobIDLabel, nil),
 		jobHold:                  prometheus.NewDesc("slurm_job_hold", "Job State Hold", jobIDLabel, nil),
 		jobCompleting:            prometheus.NewDesc("slurm_job_completing", "Job State Completing", jobIDLabel, nil),
 		jobCPUAllocation:         prometheus.NewDesc("slurm_job_cpu_allocation", "Job CPU Allocation", jobCPUAllocationLabel, nil),
