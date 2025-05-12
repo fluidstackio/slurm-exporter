@@ -122,7 +122,7 @@ type SlurmCollector struct {
 	perUserMetrics           bool
 	// Partitions
 	partitionNodes           *prometheus.Desc
-	partitionCpus            *prometheus.Desc
+	partitionTotalCpus       *prometheus.Desc
 	partitionIdleCpus        *prometheus.Desc
 	partitionAllocCpus       *prometheus.Desc
 	partitionJobs            *prometheus.Desc
@@ -134,8 +134,7 @@ type SlurmCollector struct {
 	nodeTotalCpus            *prometheus.Desc
 	nodeIdleCpus             *prometheus.Desc
 	nodeAllocCpus            *prometheus.Desc
-	// States
-	nodeStateCombined        *prometheus.Desc
+	// Node State Counts
 	totalNodes               *prometheus.Desc
 	allocNodes               *prometheus.Desc
 	completingNodes          *prometheus.Desc
@@ -167,7 +166,8 @@ type SlurmCollector struct {
 	resumeNodes              *prometheus.Desc
 	undrainNodes             *prometheus.Desc
 	unknownNodes             *prometheus.Desc
-	// States 2
+	// Node States
+	nodeStateCombined        *prometheus.Desc
 	nodeStateAlloc           *prometheus.Desc
 	nodeStateCompleting      *prometheus.Desc
 	nodeStateDown            *prometheus.Desc
@@ -353,7 +353,6 @@ func (r *SlurmCollector) slurmParse(
 	nodes *slurmtypes.V0041NodeList,
 	partitions *slurmtypes.V0041PartitionInfoList,
 ) slurmData {
-
 	ctx := context.Background()
 	log := log.FromContext(ctx)
 
@@ -620,7 +619,7 @@ func NewSlurmCollector(slurmClient client.Client, perUserMetrics bool) *SlurmCol
 		perUserMetrics:           perUserMetrics,
 		// Partitions
 		partitionNodes:           prometheus.NewDesc("slurm_partition_nodes", "Number of nodes in a slurm partition", partitionLabel, nil),
-		partitionCpus:            prometheus.NewDesc("slurm_partition_cpus", "Number of CPUs in a slurm partition", partitionLabel, nil),
+		partitionTotalCpus:       prometheus.NewDesc("slurm_partition_total_cpus", "Number of CPUs in a slurm partition", partitionLabel, nil),
 		partitionIdleCpus:        prometheus.NewDesc("slurm_partition_idle_cpus", "Number of idle CPUs in a slurm partition", partitionLabel, nil),
 		partitionAllocCpus:       prometheus.NewDesc("slurm_partition_alloc_cpus", "Number of allocated CPUs in a slurm partition", partitionLabel, nil),
 		partitionJobs:            prometheus.NewDesc("slurm_partition_jobs", "Number of allocated CPUs in a slurm partition", partitionLabel, nil),
@@ -632,8 +631,7 @@ func NewSlurmCollector(slurmClient client.Client, perUserMetrics bool) *SlurmCol
 		nodeTotalCpus:            prometheus.NewDesc("slurm_node_total_cpus", "Number of CPUs in a slurm node", nodeLabels, nil),
 		nodeIdleCpus:             prometheus.NewDesc("slurm_node_idle_cpus", "Number of idle CPUs in a slurm node", nodeLabels, nil),
 		nodeAllocCpus:            prometheus.NewDesc("slurm_node_alloc_cpus", "Number of allocated CPUs in a slurm node", nodeLabels, nil),
-		// States
-		nodeStateCombined:        prometheus.NewDesc("slurm_state_combined", "Combined Slurm State", combinedStateLabel, nil),
+		// Node State Counts
 		totalNodes:               prometheus.NewDesc("slurm_nodes_total", "Total number of slurm nodes", nil, nil),
 		allocNodes:               prometheus.NewDesc("slurm_nodes_alloc", "Number of nodes in allocated state", nil, nil),
 		completingNodes:          prometheus.NewDesc("slurm_nodes_completing", "Number of nodes in completing state", nil, nil),
@@ -665,7 +663,8 @@ func NewSlurmCollector(slurmClient client.Client, perUserMetrics bool) *SlurmCol
 		resumeNodes:              prometheus.NewDesc("slurm_nodes_resume", "Number of nodes in resume state", nil, nil),
 		undrainNodes:             prometheus.NewDesc("slurm_nodes_undrain", "Number of nodes in undrain state", nil, nil),
 		unknownNodes:             prometheus.NewDesc("slurm_nodes_unknown", "Number of nodes in unknown state", nil, nil),
-		// States 2
+		// Node States
+		nodeStateCombined:        prometheus.NewDesc("slurm_state_combined", "Combined Slurm State", combinedStateLabel, nil),
 		nodeStateCloud:           prometheus.NewDesc("slurm_state_cloud", "The cloud state of the node", nodeLabels, nil),
 		nodeStateDynamicFuture:   prometheus.NewDesc("slurm_state_dynamic_future", "The dynamic future state of the node", nodeLabels, nil),
 		nodeStateDynamicNorm:     prometheus.NewDesc("slurm_state_dynamic_norm", "The dynamic norm state of the node", nodeLabels, nil),
@@ -716,7 +715,7 @@ func NewSlurmCollector(slurmClient client.Client, perUserMetrics bool) *SlurmCol
 func (s *SlurmCollector) Describe(ch chan<- *prometheus.Desc) {
 	// Partitions
 	ch <- s.partitionNodes
-	ch <- s.partitionCpus
+	ch <- s.partitionTotalCpus
 	ch <- s.partitionIdleCpus
 	ch <- s.partitionAllocCpus
 	ch <- s.partitionJobs
@@ -728,8 +727,7 @@ func (s *SlurmCollector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- s.nodeTotalCpus
 	ch <- s.nodeIdleCpus
 	ch <- s.nodeAllocCpus
-	// States
-	ch <- s.nodeStateCombined
+	// Node State Counts
 	ch <- s.totalNodes
 	ch <- s.allocNodes
 	ch <- s.completingNodes
@@ -761,7 +759,8 @@ func (s *SlurmCollector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- s.resumeNodes
 	ch <- s.undrainNodes
 	ch <- s.unknownNodes
-	// States 2
+	// Node States
+	ch <- s.nodeStateCombined
 	ch <- s.nodeStateCloud
 	ch <- s.nodeStateDynamicFuture
 	ch <- s.nodeStateDynamicNorm
@@ -835,7 +834,7 @@ func (s *SlurmCollector) Collect(ch chan<- prometheus.Metric) {
 	// Partitions
 	for p := range slurmData.partitions {
 		ch <- prometheus.MustNewConstMetric(s.partitionNodes, prometheus.GaugeValue, float64(slurmData.partitions[p].Nodes), p)
-		ch <- prometheus.MustNewConstMetric(s.partitionCpus, prometheus.GaugeValue, float64(slurmData.partitions[p].Cpus), p)
+		ch <- prometheus.MustNewConstMetric(s.partitionTotalCpus, prometheus.GaugeValue, float64(slurmData.partitions[p].Cpus), p)
 		ch <- prometheus.MustNewConstMetric(s.partitionIdleCpus, prometheus.GaugeValue, float64(slurmData.partitions[p].Idle), p)
 		ch <- prometheus.MustNewConstMetric(s.partitionAllocCpus, prometheus.GaugeValue, float64(slurmData.partitions[p].Alloc), p)
 		ch <- prometheus.MustNewConstMetric(s.partitionJobs, prometheus.GaugeValue, float64(slurmData.partitions[p].Jobs), p)
