@@ -11,6 +11,7 @@ All notable changes to this project will be documented in this file.
 - Added more data fields to existing collections -- expanded node and job
   states, memory usage.
 - Added accounting data collection -- job states, TRES usage.
+- Added scheduler statistics collection.
 
 ### Fixed
 

@@ -70,6 +70,7 @@ func main() {
 	}
 
 	collectors := []prometheus.Collector{
+		collector.NewSchedulerCollector(slurmClient),
 		collector.NewNodeCollector(slurmClient),
 		collector.NewJobCollector(slurmClient),
 		collector.NewPartitionCollector(slurmClient),

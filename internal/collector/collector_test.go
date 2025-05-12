@@ -262,8 +262,86 @@ var (
 	}
 )
 
+var (
+	stats = &types.V0041Stats{V0041StatsMsg: api.V0041StatsMsg{
+		ScheduleCycleDepth:     ptr.To[int32](1),
+		ScheduleCycleLast:      ptr.To[int32](1),
+		ScheduleCycleMax:       ptr.To[int32](1),
+		ScheduleCycleMean:      ptr.To[int64](1),
+		ScheduleCycleMeanDepth: ptr.To[int64](1),
+		ScheduleCyclePerMinute: ptr.To[int64](1),
+		ScheduleCycleSum:       ptr.To[int32](1),
+		ScheduleCycleTotal:     ptr.To[int32](1),
+		ScheduleQueueLength:    ptr.To[int32](1),
+		ScheduleExit: &api.V0041ScheduleExitFields{
+			DefaultQueueDepth: ptr.To[int32](2),
+			EndJobQueue:       ptr.To[int32](2),
+			Licenses:          ptr.To[int32](2),
+			MaxJobStart:       ptr.To[int32](2),
+			MaxRpcCnt:         ptr.To[int32](2),
+			MaxSchedTime:      ptr.To[int32](2),
+		},
+
+		BfActive:             ptr.To(true),
+		BfBackfilledHetJobs:  ptr.To[int32](3),
+		BfBackfilledJobs:     ptr.To[int32](3),
+		BfCycleCounter:       ptr.To[int32](3),
+		BfCycleLast:          ptr.To[int32](3),
+		BfCycleMax:           ptr.To[int32](3),
+		BfCycleMean:          ptr.To[int64](3),
+		BfCycleSum:           ptr.To[int64](3),
+		BfDepthMean:          ptr.To[int64](3),
+		BfDepthMeanTry:       ptr.To[int64](3),
+		BfDepthSum:           ptr.To[int32](3),
+		BfDepthTrySum:        ptr.To[int32](3),
+		BfLastBackfilledJobs: ptr.To[int32](3),
+		BfLastDepth:          ptr.To[int32](3),
+		BfLastDepthTry:       ptr.To[int32](3),
+		BfQueueLen:           ptr.To[int32](3),
+		BfQueueLenMean:       ptr.To[int64](3),
+		BfQueueLenSum:        ptr.To[int32](3),
+		BfTableSize:          ptr.To[int32](3),
+		BfTableSizeMean:      ptr.To[int64](3),
+		BfTableSizeSum:       ptr.To[int32](3),
+		BfWhenLastCycle: &api.V0041Uint64NoValStruct{
+			Number: ptr.To[int64](3),
+			Set:    ptr.To(true),
+		},
+
+		BfExit: &api.V0041BfExitFields{
+			BfMaxJobStart:   ptr.To[int32](4),
+			BfMaxJobTest:    ptr.To[int32](4),
+			BfMaxTime:       ptr.To[int32](4),
+			BfNodeSpaceSize: ptr.To[int32](4),
+			EndJobQueue:     ptr.To[int32](4),
+			StateChanged:    ptr.To[int32](4),
+		},
+
+		JobStatesTs: &api.V0041Uint64NoValStruct{
+			Number: ptr.To[int64](5),
+			Set:    ptr.To(true),
+		},
+		JobsCanceled:  ptr.To[int32](5),
+		JobsCompleted: ptr.To[int32](5),
+		JobsFailed:    ptr.To[int32](5),
+		JobsPending:   ptr.To[int32](5),
+		JobsRunning:   ptr.To[int32](5),
+		JobsStarted:   ptr.To[int32](5),
+		JobsSubmitted: ptr.To[int32](5),
+
+		AgentCount:       ptr.To[int32](6),
+		AgentQueueSize:   ptr.To[int32](6),
+		AgentThreadCount: ptr.To[int32](6),
+
+		ServerThreadCount: ptr.To[int32](7),
+
+		DbdAgentQueueSize: ptr.To[int32](8),
+	}}
+)
+
 var testDataClient = fake.NewClientBuilder().
 	WithLists(partitionList, nodeList, jobList).
+	WithObjects(stats).
 	Build()
 
 var testFailClient = fake.NewClientBuilder().
