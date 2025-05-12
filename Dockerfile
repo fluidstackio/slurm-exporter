@@ -53,7 +53,7 @@ LABEL name="Slurm Exporter" \
       release="https://github.com/SlinkyProject/slurm-exporter"
 
 WORKDIR /
-COPY --from=builder /workspace/ .
+COPY --from=builder /workspace/exporter /usr/local/bin/exporter
 USER 65532:65532
 
-ENTRYPOINT ["/exporter"]
+ENTRYPOINT ["exporter"]

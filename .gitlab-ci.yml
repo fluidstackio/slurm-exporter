@@ -67,8 +67,7 @@ release-oci:
   stage: release
   extends: .docker
   variables:
-    # Used by Makefile
-    REGISTRY: ${DOCKER_REGISTRY}
+    DOCKER_BAKE_REGISTRY: ${DOCKER_REGISTRY}
   script:
     - set -euo pipefail
     - |
