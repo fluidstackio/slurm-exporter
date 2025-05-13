@@ -124,7 +124,7 @@ type SlurmCollector struct {
 	partitionTotalCpus       *prometheus.Desc
 	partitionIdleCpus        *prometheus.Desc
 	partitionAllocCpus       *prometheus.Desc
-	partitionJobs            *prometheus.Desc
+	partitionTotalJobs       *prometheus.Desc
 	partitionPendingJobs     *prometheus.Desc
 	partitionMaxPendingNodes *prometheus.Desc
 	partitionRunningJobs     *prometheus.Desc
@@ -620,7 +620,7 @@ func NewSlurmCollector(slurmClient client.Client) *SlurmCollector {
 		partitionTotalCpus:       prometheus.NewDesc("slurm_partition_total_cpus", "Number of CPUs in a slurm partition", partitionLabel, nil),
 		partitionIdleCpus:        prometheus.NewDesc("slurm_partition_idle_cpus", "Number of idle CPUs in a slurm partition", partitionLabel, nil),
 		partitionAllocCpus:       prometheus.NewDesc("slurm_partition_alloc_cpus", "Number of allocated CPUs in a slurm partition", partitionLabel, nil),
-		partitionJobs:            prometheus.NewDesc("slurm_partition_jobs", "Number of allocated CPUs in a slurm partition", partitionLabel, nil),
+		partitionTotalJobs:       prometheus.NewDesc("slurm_partition_jobs", "Total number of jobs in a slurm partition", partitionLabel, nil),
 		partitionPendingJobs:     prometheus.NewDesc("slurm_partition_pending_jobs", "Number of pending jobs in a slurm partition", partitionLabel, nil),
 		partitionMaxPendingNodes: prometheus.NewDesc("slurm_partition_max_pending_nodes", "Number of nodes pending for the largest job in the partition", partitionLabel, nil),
 		partitionRunningJobs:     prometheus.NewDesc("slurm_partition_running_jobs", "Number of running jobs in a slurm partition", partitionLabel, nil),
@@ -716,7 +716,7 @@ func (s *SlurmCollector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- s.partitionTotalCpus
 	ch <- s.partitionIdleCpus
 	ch <- s.partitionAllocCpus
-	ch <- s.partitionJobs
+	ch <- s.partitionTotalJobs
 	ch <- s.partitionPendingJobs
 	ch <- s.partitionMaxPendingNodes
 	ch <- s.partitionRunningJobs
@@ -835,7 +835,7 @@ func (s *SlurmCollector) Collect(ch chan<- prometheus.Metric) {
 		ch <- prometheus.MustNewConstMetric(s.partitionTotalCpus, prometheus.GaugeValue, float64(slurmData.partitions[p].Cpus), p)
 		ch <- prometheus.MustNewConstMetric(s.partitionIdleCpus, prometheus.GaugeValue, float64(slurmData.partitions[p].Idle), p)
 		ch <- prometheus.MustNewConstMetric(s.partitionAllocCpus, prometheus.GaugeValue, float64(slurmData.partitions[p].Alloc), p)
-		ch <- prometheus.MustNewConstMetric(s.partitionJobs, prometheus.GaugeValue, float64(slurmData.partitions[p].Jobs), p)
+		ch <- prometheus.MustNewConstMetric(s.partitionTotalJobs, prometheus.GaugeValue, float64(slurmData.partitions[p].Jobs), p)
 		ch <- prometheus.MustNewConstMetric(s.partitionPendingJobs, prometheus.GaugeValue, float64(slurmData.partitions[p].PendingJobs), p)
 		ch <- prometheus.MustNewConstMetric(s.partitionMaxPendingNodes, prometheus.GaugeValue, float64(slurmData.partitions[p].PendingMaxNodes), p)
 		ch <- prometheus.MustNewConstMetric(s.partitionRunningJobs, prometheus.GaugeValue, float64(slurmData.partitions[p].RunningJobs), p)
