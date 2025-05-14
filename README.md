@@ -59,8 +59,8 @@ The recommended deployment mechanism is through [Helm] chart.
   reservation.
 - [**Mixed**][node-mixed]: nodes which have some but not all of their CPUs
   ALLOCATED, or suspended jobs have TRES (e.g. Memory) still allocated.
-- [**Mixed**][node-reserved]: nodes which are in an advanced reservation and not
-  generally available.
+- [**Reserved**][node-reserved]: nodes which are in an advanced reservation and
+  not generally available.
 
 ### Partitions
 
