@@ -46,7 +46,7 @@ func NewNodeCollector(slurmClient client.Client) prometheus.Collector {
 			CpusAlloc: prometheus.NewDesc("slurm_node_cpus_alloc_total", "Number of Allocated CPUs on the node", nodeLabels, nil),
 			CpusIdle:  prometheus.NewDesc("slurm_node_cpus_idle_total", "Number of Idle CPUs on the node", nodeLabels, nil),
 			// Memory
-			MemoryTotal: prometheus.NewDesc("slurm_node_memory_bytes", "Totcal amount of Allocated Memory (MB) on the node", nodeLabels, nil),
+			MemoryTotal: prometheus.NewDesc("slurm_node_memory_bytes", "Total amount of Memory (MB) on the node", nodeLabels, nil),
 			MemoryAlloc: prometheus.NewDesc("slurm_node_memory_alloc_bytes", "Amount of Allocated Memory (MB) on the node", nodeLabels, nil),
 			MemoryFree:  prometheus.NewDesc("slurm_node_memory_free_bytes", "Amount of Free Memory (MB) on the node", nodeLabels, nil),
 		},

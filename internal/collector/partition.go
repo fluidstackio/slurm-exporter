@@ -77,7 +77,7 @@ func NewPartitionCollector(slurmClient client.Client) prometheus.Collector {
 			CpusAlloc: prometheus.NewDesc("slurm_partition_nodes_cpus_alloc_total", "Number of Allocated CPUs on the node", partitionLabels, nil),
 			CpusIdle:  prometheus.NewDesc("slurm_partition_nodes_cpus_idle_total", "Number of Idle CPUs on the node", partitionLabels, nil),
 			// Memory
-			MemoryTotal: prometheus.NewDesc("slurm_partition_nodes_memory_bytes", "Totcal amount of Allocated Memory (MB) on the node", partitionLabels, nil),
+			MemoryTotal: prometheus.NewDesc("slurm_partition_nodes_memory_bytes", "Total amount of Memory (MB) on the node", partitionLabels, nil),
 			MemoryAlloc: prometheus.NewDesc("slurm_partition_nodes_memory_alloc_bytes", "Amount of Allocated Memory (MB) on the node", partitionLabels, nil),
 			MemoryFree:  prometheus.NewDesc("slurm_partition_nodes_memory_free_bytes", "Amount of Free Memory (MB) on the node", partitionLabels, nil),
 		},
