@@ -42,13 +42,15 @@ func NewNodeCollector(slurmClient client.Client) prometheus.Collector {
 		},
 		NodeTres: nodeTresCollector{
 			// CPUs
-			CpusTotal: prometheus.NewDesc("slurm_node_cpus_total", "Total number of CPUs on the node", nodeLabels, nil),
-			CpusAlloc: prometheus.NewDesc("slurm_node_cpus_alloc_total", "Number of Allocated CPUs on the node", nodeLabels, nil),
-			CpusIdle:  prometheus.NewDesc("slurm_node_cpus_idle_total", "Number of Idle CPUs on the node", nodeLabels, nil),
+			CpusTotal:     prometheus.NewDesc("slurm_node_cpus_total", "Total number of CPUs on the node", nodeLabels, nil),
+			CpusEffective: prometheus.NewDesc("slurm_node_cpus_effective_total", "Total number of effective CPUs on the node, excludes CoreSpec", nodeLabels, nil),
+			CpusAlloc:     prometheus.NewDesc("slurm_node_cpus_alloc_total", "Number of Allocated CPUs on the node", nodeLabels, nil),
+			CpusIdle:      prometheus.NewDesc("slurm_node_cpus_idle_total", "Number of Idle CPUs on the node", nodeLabels, nil),
 			// Memory
-			MemoryTotal: prometheus.NewDesc("slurm_node_memory_bytes", "Total amount of Memory (MB) on the node", nodeLabels, nil),
-			MemoryAlloc: prometheus.NewDesc("slurm_node_memory_alloc_bytes", "Amount of Allocated Memory (MB) on the node", nodeLabels, nil),
-			MemoryFree:  prometheus.NewDesc("slurm_node_memory_free_bytes", "Amount of Free Memory (MB) on the node", nodeLabels, nil),
+			MemoryTotal:     prometheus.NewDesc("slurm_node_memory_bytes", "Total amount of Memory (MB) on the node", nodeLabels, nil),
+			MemoryEffective: prometheus.NewDesc("slurm_node_memory_effective_bytes", "Total amount of effective Memory (MB) on the node, excludes MemSpec", nodeLabels, nil),
+			MemoryAlloc:     prometheus.NewDesc("slurm_node_memory_alloc_bytes", "Amount of Allocated Memory (MB) on the node", nodeLabels, nil),
+			MemoryFree:      prometheus.NewDesc("slurm_node_memory_free_bytes", "Amount of Free Memory (MB) on the node", nodeLabels, nil),
 		},
 	}
 }
@@ -84,13 +86,15 @@ type nodeStatesCollector struct {
 
 type nodeTresCollector struct {
 	// CPUs
-	CpusTotal *prometheus.Desc
-	CpusAlloc *prometheus.Desc
-	CpusIdle  *prometheus.Desc
+	CpusTotal     *prometheus.Desc
+	CpusEffective *prometheus.Desc
+	CpusAlloc     *prometheus.Desc
+	CpusIdle      *prometheus.Desc
 	// Memory
-	MemoryTotal *prometheus.Desc
-	MemoryAlloc *prometheus.Desc
-	MemoryFree  *prometheus.Desc
+	MemoryTotal     *prometheus.Desc
+	MemoryEffective *prometheus.Desc
+	MemoryAlloc     *prometheus.Desc
+	MemoryFree      *prometheus.Desc
 }
 
 func (c *nodeCollector) Describe(ch chan<- *prometheus.Desc) {
@@ -131,10 +135,12 @@ func (c *nodeCollector) Collect(ch chan<- prometheus.Metric) {
 	for node, data := range metrics.NodeTresPer {
 		// CPUs
 		ch <- prometheus.MustNewConstMetric(c.NodeTres.CpusTotal, prometheus.GaugeValue, float64(data.CpusTotal), node)
+		ch <- prometheus.MustNewConstMetric(c.NodeTres.CpusEffective, prometheus.GaugeValue, float64(data.CpusEffective), node)
 		ch <- prometheus.MustNewConstMetric(c.NodeTres.CpusAlloc, prometheus.GaugeValue, float64(data.CpusAlloc), node)
 		ch <- prometheus.MustNewConstMetric(c.NodeTres.CpusIdle, prometheus.GaugeValue, float64(data.CpusIdle), node)
 		// Memory
 		ch <- prometheus.MustNewConstMetric(c.NodeTres.MemoryTotal, prometheus.GaugeValue, float64(data.MemoryTotal), node)
+		ch <- prometheus.MustNewConstMetric(c.NodeTres.MemoryEffective, prometheus.GaugeValue, float64(data.MemoryEffective), node)
 		ch <- prometheus.MustNewConstMetric(c.NodeTres.MemoryAlloc, prometheus.GaugeValue, float64(data.MemoryAlloc), node)
 		ch <- prometheus.MustNewConstMetric(c.NodeTres.MemoryFree, prometheus.GaugeValue, float64(data.MemoryFree), node)
 	}
@@ -219,10 +225,12 @@ func calculateNodeTres(metrics *NodeTres, node types.V0041Node) {
 	metrics.total++
 	// CPUs
 	metrics.CpusTotal += uint(ptr.Deref(node.Cpus, 0))
+	metrics.CpusEffective += uint(ptr.Deref(node.EffectiveCpus, 0))
 	metrics.CpusAlloc += uint(ptr.Deref(node.AllocCpus, 0))
 	metrics.CpusIdle += uint(ptr.Deref(node.AllocIdleCpus, 0))
 	// Memory
 	metrics.MemoryTotal += uint(ptr.Deref(node.RealMemory, 0))
+	metrics.MemoryEffective += uint(ptr.Deref(node.RealMemory, 0) - ptr.Deref(node.SpecializedMemory, 0))
 	metrics.MemoryAlloc += uint(ptr.Deref(node.AllocMemory, 0))
 	metrics.MemoryFree += uint(ParseUint64NoVal(node.FreeMem))
 }
@@ -264,11 +272,13 @@ type NodeStates struct {
 type NodeTres struct {
 	total uint
 	// CPUs
-	CpusTotal uint
-	CpusAlloc uint
-	CpusIdle  uint
+	CpusTotal     uint
+	CpusEffective uint
+	CpusAlloc     uint
+	CpusIdle      uint
 	// Memory
-	MemoryTotal uint
-	MemoryAlloc uint
-	MemoryFree  uint
+	MemoryTotal     uint
+	MemoryEffective uint
+	MemoryAlloc     uint
+	MemoryFree      uint
 }

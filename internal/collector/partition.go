@@ -73,13 +73,15 @@ func NewPartitionCollector(slurmClient client.Client) prometheus.Collector {
 		},
 		NodeTres: nodeTresCollector{
 			// CPUs
-			CpusTotal: prometheus.NewDesc("slurm_partition_nodes_cpus_total", "Total number of CPUs on the node", partitionLabels, nil),
-			CpusAlloc: prometheus.NewDesc("slurm_partition_nodes_cpus_alloc_total", "Number of Allocated CPUs on the node", partitionLabels, nil),
-			CpusIdle:  prometheus.NewDesc("slurm_partition_nodes_cpus_idle_total", "Number of Idle CPUs on the node", partitionLabels, nil),
+			CpusTotal:     prometheus.NewDesc("slurm_partition_nodes_cpus_total", "Total number of CPUs on the node", partitionLabels, nil),
+			CpusEffective: prometheus.NewDesc("slurm_partition_nodes_cpus_effective_total", "Total number of effective CPUs on the node, excludes CoreSpec", partitionLabels, nil),
+			CpusAlloc:     prometheus.NewDesc("slurm_partition_nodes_cpus_alloc_total", "Number of Allocated CPUs on the node", partitionLabels, nil),
+			CpusIdle:      prometheus.NewDesc("slurm_partition_nodes_cpus_idle_total", "Number of Idle CPUs on the node", partitionLabels, nil),
 			// Memory
-			MemoryTotal: prometheus.NewDesc("slurm_partition_nodes_memory_bytes", "Total amount of Memory (MB) on the node", partitionLabels, nil),
-			MemoryAlloc: prometheus.NewDesc("slurm_partition_nodes_memory_alloc_bytes", "Amount of Allocated Memory (MB) on the node", partitionLabels, nil),
-			MemoryFree:  prometheus.NewDesc("slurm_partition_nodes_memory_free_bytes", "Amount of Free Memory (MB) on the node", partitionLabels, nil),
+			MemoryTotal:     prometheus.NewDesc("slurm_partition_nodes_memory_bytes", "Total amount of Memory (MB) on the node", partitionLabels, nil),
+			MemoryEffective: prometheus.NewDesc("slurm_partition_nodes_memory_effective_bytes", "Total amount of effective Memory (MB) on the node, excludes MemSpec", partitionLabels, nil),
+			MemoryAlloc:     prometheus.NewDesc("slurm_partition_nodes_memory_alloc_bytes", "Amount of Allocated Memory (MB) on the node", partitionLabels, nil),
+			MemoryFree:      prometheus.NewDesc("slurm_partition_nodes_memory_free_bytes", "Amount of Free Memory (MB) on the node", partitionLabels, nil),
 		},
 	}
 }
@@ -161,9 +163,11 @@ func (c *partitionCollector) Collect(ch chan<- prometheus.Metric) {
 		ch <- prometheus.MustNewConstMetric(c.NodeStates.Reserved, prometheus.GaugeValue, float64(data.NodeStates.Reserved), partition)
 		// Tres
 		ch <- prometheus.MustNewConstMetric(c.NodeTres.CpusTotal, prometheus.GaugeValue, float64(data.NodeTres.CpusTotal), partition)
+		ch <- prometheus.MustNewConstMetric(c.NodeTres.CpusEffective, prometheus.GaugeValue, float64(data.NodeTres.CpusEffective), partition)
 		ch <- prometheus.MustNewConstMetric(c.NodeTres.CpusAlloc, prometheus.GaugeValue, float64(data.NodeTres.CpusAlloc), partition)
 		ch <- prometheus.MustNewConstMetric(c.NodeTres.CpusIdle, prometheus.GaugeValue, float64(data.NodeTres.CpusIdle), partition)
 		ch <- prometheus.MustNewConstMetric(c.NodeTres.MemoryTotal, prometheus.GaugeValue, float64(data.NodeTres.MemoryTotal), partition)
+		ch <- prometheus.MustNewConstMetric(c.NodeTres.MemoryEffective, prometheus.GaugeValue, float64(data.NodeTres.MemoryEffective), partition)
 		ch <- prometheus.MustNewConstMetric(c.NodeTres.MemoryAlloc, prometheus.GaugeValue, float64(data.NodeTres.MemoryAlloc), partition)
 		ch <- prometheus.MustNewConstMetric(c.NodeTres.MemoryFree, prometheus.GaugeValue, float64(data.NodeTres.MemoryFree), partition)
 	}

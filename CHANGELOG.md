@@ -12,6 +12,7 @@ All notable changes to this project will be documented in this file.
   states, memory usage.
 - Added accounting data collection -- job states, TRES usage.
 - Added scheduler statistics collection.
+- Added effective CPU and memory totals for nodes.
 
 ### Fixed
 
