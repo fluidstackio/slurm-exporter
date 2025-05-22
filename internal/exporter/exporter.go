@@ -28,8 +28,8 @@ import (
 var (
 	partitionLabel        = []string{"partition"}
 	nodeLabels            = []string{"node", "hostname"}
-	jobLabel              = []string{"user"}
-	jobIDLabel            = []string{"jobid", "nodes"}
+	userJobLabel          = []string{"user"}
+	jobLabel              = []string{"jobid", "nodes"}
 	jobCPUAllocationLabel = []string{"jobid", "core", "socket", "hostname"}
 	combinedStateLabel    = []string{"node", "hostname", "combinedState"}
 	nodeReasonLabel       = []string{"node", "hostname", "reason", "user2", "timestamp"}
@@ -37,20 +37,20 @@ var (
 
 type PartitionData struct {
 	Nodes           int32
-	Cpus            int32
+	TotalCpus       int32
+	AllocCpus       int32
+	IdleCpus        int32
 	PendingJobs     int32
 	PendingMaxNodes int32
 	RunningJobs     int32
 	HoldJobs        int32
 	Jobs            int32
-	Alloc           int32
-	Idle            int32
 }
 
 type NodeData struct {
-	Cpus            int32
-	Alloc           int32
-	Idle            int32
+	TotalCpus       int32
+	AllocCpus       int32
+	IdleCpus        int32
 	States          NodeStates
 	unavailable     int32
 	CombinedState   string
@@ -130,41 +130,41 @@ type SlurmCollector struct {
 	partitionRunningJobs     *prometheus.Desc
 	partitionHoldJobs        *prometheus.Desc
 	// Node CPUs
-	nodeTotalCpus            *prometheus.Desc
-	nodeIdleCpus             *prometheus.Desc
-	nodeAllocCpus            *prometheus.Desc
+	nodeTotalCpus *prometheus.Desc
+	nodeIdleCpus  *prometheus.Desc
+	nodeAllocCpus *prometheus.Desc
 	// Node State Counts
-	totalNodes               *prometheus.Desc
-	allocNodes               *prometheus.Desc
-	completingNodes          *prometheus.Desc
-	downNodes                *prometheus.Desc
-	drainNodes               *prometheus.Desc
-	errNodes                 *prometheus.Desc
-	idleNodes                *prometheus.Desc
-	maintenanceNodes         *prometheus.Desc
-	mixedNodes               *prometheus.Desc
-	reservedNodes            *prometheus.Desc
-	cloudNodes               *prometheus.Desc
-	dynamicFutureNodes       *prometheus.Desc
-	dynamicNormNodes         *prometheus.Desc
-	failNodes                *prometheus.Desc
-	futureNodes              *prometheus.Desc
-	invalidNodes             *prometheus.Desc
-	invalidRegNodes          *prometheus.Desc
-	notRespondingNodes       *prometheus.Desc
-	plannedNodes             *prometheus.Desc
-	powerDownNodes           *prometheus.Desc
-	powerDrainNodes          *prometheus.Desc
-	poweredDownNodes         *prometheus.Desc
-	poweringDownNodes        *prometheus.Desc
-	poweringUpNodes          *prometheus.Desc
-	powerUpNodes             *prometheus.Desc
-	rebootCanceledNodes      *prometheus.Desc
-	rebootIssuedNodes        *prometheus.Desc
-	rebootRequestedNodes     *prometheus.Desc
-	resumeNodes              *prometheus.Desc
-	undrainNodes             *prometheus.Desc
-	unknownNodes             *prometheus.Desc
+	totalNodes           *prometheus.Desc
+	allocNodes           *prometheus.Desc
+	completingNodes      *prometheus.Desc
+	downNodes            *prometheus.Desc
+	drainNodes           *prometheus.Desc
+	errNodes             *prometheus.Desc
+	idleNodes            *prometheus.Desc
+	maintenanceNodes     *prometheus.Desc
+	mixedNodes           *prometheus.Desc
+	reservedNodes        *prometheus.Desc
+	cloudNodes           *prometheus.Desc
+	dynamicFutureNodes   *prometheus.Desc
+	dynamicNormNodes     *prometheus.Desc
+	failNodes            *prometheus.Desc
+	futureNodes          *prometheus.Desc
+	invalidNodes         *prometheus.Desc
+	invalidRegNodes      *prometheus.Desc
+	notRespondingNodes   *prometheus.Desc
+	plannedNodes         *prometheus.Desc
+	powerDownNodes       *prometheus.Desc
+	powerDrainNodes      *prometheus.Desc
+	poweredDownNodes     *prometheus.Desc
+	poweringDownNodes    *prometheus.Desc
+	poweringUpNodes      *prometheus.Desc
+	powerUpNodes         *prometheus.Desc
+	rebootCanceledNodes  *prometheus.Desc
+	rebootIssuedNodes    *prometheus.Desc
+	rebootRequestedNodes *prometheus.Desc
+	resumeNodes          *prometheus.Desc
+	undrainNodes         *prometheus.Desc
+	unknownNodes         *prometheus.Desc
 	// Node States
 	nodeStateCombined        *prometheus.Desc
 	nodeStateAlloc           *prometheus.Desc
@@ -198,17 +198,17 @@ type SlurmCollector struct {
 	nodeStateUndrain         *prometheus.Desc
 	nodeStateUnknown         *prometheus.Desc
 	// User
-	userJobTotal             *prometheus.Desc
-	userCPUsTotal            *prometheus.Desc
-	userPendingJobs          *prometheus.Desc
-	userRunningJobs          *prometheus.Desc
-	userHoldJobs             *prometheus.Desc
+	userTotalJobs   *prometheus.Desc
+	userTotalCpus   *prometheus.Desc
+	userPendingJobs *prometheus.Desc
+	userRunningJobs *prometheus.Desc
+	userHoldJobs    *prometheus.Desc
 	// Job
-	jobRunning               *prometheus.Desc
-	jobPending               *prometheus.Desc
-	jobHold                  *prometheus.Desc
-	jobCompleting            *prometheus.Desc
-	jobCPUAllocation         *prometheus.Desc
+	jobRunning       *prometheus.Desc
+	jobPending       *prometheus.Desc
+	jobHold          *prometheus.Desc
+	jobCompleting    *prometheus.Desc
+	jobCPUAllocation *prometheus.Desc
 }
 
 func splitOutsideBrackets(input string) []string {
@@ -367,7 +367,7 @@ func (r *SlurmCollector) slurmParse(
 		if !ok {
 			partitionData[key] = &PartitionData{}
 		}
-		partitionData[key].Cpus = ptr.Deref(p.Cpus.Total, 0)
+		partitionData[key].TotalCpus = ptr.Deref(p.Cpus.Total, 0)
 		partitionData[key].Nodes = ptr.Deref(p.Nodes.Total, 0)
 	}
 
@@ -380,9 +380,9 @@ func (r *SlurmCollector) slurmParse(
 		if !ok {
 			nodeData[key] = &NodeData{}
 		}
-		nodeData[key].Cpus = ptr.Deref(n.Cpus, 0)
-		nodeData[key].Alloc = ptr.Deref(n.AllocCpus, 0)
-		nodeData[key].Idle = ptr.Deref(n.AllocIdleCpus, 0)
+		nodeData[key].TotalCpus = ptr.Deref(n.Cpus, 0)
+		nodeData[key].AllocCpus = ptr.Deref(n.AllocCpus, 0)
+		nodeData[key].IdleCpus = ptr.Deref(n.AllocIdleCpus, 0)
 		nodeData[key].States = NodeStates{}
 		nodeData[key].Reason = ptr.Deref(n.Reason, "")
 		nodeData[key].ReasonSetByUser = ptr.Deref(n.ReasonSetByUser, "")
@@ -507,8 +507,8 @@ func (r *SlurmCollector) slurmParse(
 		for _, p := range partitions {
 			_, ok := partitionData[p]
 			if ok {
-				partitionData[p].Alloc += nodeData[key].Alloc
-				partitionData[p].Idle += nodeData[key].Idle
+				partitionData[p].AllocCpus += nodeData[key].AllocCpus
+				partitionData[p].IdleCpus += nodeData[key].IdleCpus
 			}
 		}
 	}
@@ -614,53 +614,57 @@ func (r *SlurmCollector) slurmParse(
 
 func NewSlurmCollector(slurmClient client.Client) *SlurmCollector {
 	return &SlurmCollector{
-		slurmClient:              slurmClient,
-		// Partitions
-		partitionNodes:           prometheus.NewDesc("slurm_partition_nodes", "Number of nodes in a slurm partition", partitionLabel, nil),
-		partitionTotalCpus:       prometheus.NewDesc("slurm_partition_total_cpus", "Number of CPUs in a slurm partition", partitionLabel, nil),
-		partitionIdleCpus:        prometheus.NewDesc("slurm_partition_idle_cpus", "Number of idle CPUs in a slurm partition", partitionLabel, nil),
-		partitionAllocCpus:       prometheus.NewDesc("slurm_partition_alloc_cpus", "Number of allocated CPUs in a slurm partition", partitionLabel, nil),
-		partitionTotalJobs:       prometheus.NewDesc("slurm_partition_jobs", "Total number of jobs in a slurm partition", partitionLabel, nil),
+		slurmClient: slurmClient,
+		// Partition Nodes
+		partitionNodes: prometheus.NewDesc("slurm_partition_total_nodes", "Total number of nodes in a slurm partition", partitionLabel, nil),
+		// Partition CPUs
+		partitionTotalCpus: prometheus.NewDesc("slurm_partition_total_cpus", "Number of CPUs in a slurm partition", partitionLabel, nil),
+		partitionIdleCpus:  prometheus.NewDesc("slurm_partition_idle_cpus", "Number of idle CPUs in a slurm partition", partitionLabel, nil),
+		partitionAllocCpus: prometheus.NewDesc("slurm_partition_alloc_cpus", "Number of allocated CPUs in a slurm partition", partitionLabel, nil),
+		// Partition Jobs
+		partitionTotalJobs:       prometheus.NewDesc("slurm_partition_total_jobs", "Total number of jobs in a slurm partition", partitionLabel, nil),
 		partitionPendingJobs:     prometheus.NewDesc("slurm_partition_pending_jobs", "Number of pending jobs in a slurm partition", partitionLabel, nil),
 		partitionMaxPendingNodes: prometheus.NewDesc("slurm_partition_max_pending_nodes", "Number of nodes pending for the largest job in the partition", partitionLabel, nil),
 		partitionRunningJobs:     prometheus.NewDesc("slurm_partition_running_jobs", "Number of running jobs in a slurm partition", partitionLabel, nil),
 		partitionHoldJobs:        prometheus.NewDesc("slurm_partition_hold_jobs", "Number of hold jobs in a slurm partition", partitionLabel, nil),
 		// Node CPUs
-		nodeTotalCpus:            prometheus.NewDesc("slurm_node_total_cpus", "Number of CPUs in a slurm node", nodeLabels, nil),
-		nodeIdleCpus:             prometheus.NewDesc("slurm_node_idle_cpus", "Number of idle CPUs in a slurm node", nodeLabels, nil),
-		nodeAllocCpus:            prometheus.NewDesc("slurm_node_alloc_cpus", "Number of allocated CPUs in a slurm node", nodeLabels, nil),
+		nodeTotalCpus: prometheus.NewDesc("slurm_node_total_cpus", "Total number of CPUs in a slurm node", nodeLabels, nil),
+		nodeIdleCpus:  prometheus.NewDesc("slurm_node_idle_cpus", "Number of idle CPUs in a slurm node", nodeLabels, nil),
+		nodeAllocCpus: prometheus.NewDesc("slurm_node_alloc_cpus", "Number of allocated CPUs in a slurm node", nodeLabels, nil),
+		// TODO: Node GPUs
+		// TODO: Node Jobs
 		// Node State Counts
-		totalNodes:               prometheus.NewDesc("slurm_nodes_total", "Total number of slurm nodes", nil, nil),
-		allocNodes:               prometheus.NewDesc("slurm_nodes_alloc", "Number of nodes in allocated state", nil, nil),
-		completingNodes:          prometheus.NewDesc("slurm_nodes_completing", "Number of nodes in completing state", nil, nil),
-		downNodes:                prometheus.NewDesc("slurm_nodes_down", "Number of nodes in down state", nil, nil),
-		drainNodes:               prometheus.NewDesc("slurm_nodes_drain", "Number of nodes in drain state", nil, nil),
-		errNodes:                 prometheus.NewDesc("slurm_nodes_err", "Number of nodes in error state", nil, nil),
-		idleNodes:                prometheus.NewDesc("slurm_nodes_idle", "Number of nodes in idle state", nil, nil),
-		maintenanceNodes:         prometheus.NewDesc("slurm_nodes_maintenance", "Number of nodes in maintenance state", nil, nil),
-		mixedNodes:               prometheus.NewDesc("slurm_nodes_mixed", "Number of nodes in mixed state", nil, nil),
-		reservedNodes:            prometheus.NewDesc("slurm_nodes_reserved", "Number of nodes in reserved state", nil, nil),
-		cloudNodes:               prometheus.NewDesc("slurm_nodes_cloud", "Number of nodes in cloud state", nil, nil),
-		dynamicFutureNodes:       prometheus.NewDesc("slurm_nodes_dynamic_future", "Number of nodes in dynamic future state", nil, nil),
-		dynamicNormNodes:         prometheus.NewDesc("slurm_nodes_dynamic_norm", "Number of nodes in dynamic norm state", nil, nil),
-		failNodes:                prometheus.NewDesc("slurm_nodes_fail", "Number of nodes in fail state", nil, nil),
-		futureNodes:              prometheus.NewDesc("slurm_nodes_future", "Number of nodes in future state", nil, nil),
-		invalidNodes:             prometheus.NewDesc("slurm_nodes_invalid", "Number of nodes in invalid state", nil, nil),
-		invalidRegNodes:          prometheus.NewDesc("slurm_nodes_invalid_reg", "Number of nodes in invalid reg state", nil, nil),
-		notRespondingNodes:       prometheus.NewDesc("slurm_nodes_not_responding", "Number of nodes in not responding state", nil, nil),
-		plannedNodes:             prometheus.NewDesc("slurm_nodes_planned", "Number of nodes in planned state", nil, nil),
-		powerDownNodes:           prometheus.NewDesc("slurm_nodes_power_down", "Number of nodes in power down state", nil, nil),
-		powerDrainNodes:          prometheus.NewDesc("slurm_nodes_power_drain", "Number of nodes in power drain state", nil, nil),
-		poweredDownNodes:         prometheus.NewDesc("slurm_nodes_powered_down", "Number of nodes in powered down state", nil, nil),
-		poweringDownNodes:        prometheus.NewDesc("slurm_nodes_powering_down", "Number of nodes in powering down state", nil, nil),
-		poweringUpNodes:          prometheus.NewDesc("slurm_nodes_powering_up", "Number of nodes in powering up state", nil, nil),
-		powerUpNodes:             prometheus.NewDesc("slurm_nodes_power_up", "Number of nodes in power up state", nil, nil),
-		rebootCanceledNodes:      prometheus.NewDesc("slurm_nodes_reboot_canceled", "Number of nodes in reboot canceled state", nil, nil),
-		rebootIssuedNodes:        prometheus.NewDesc("slurm_nodes_reboot_issued", "Number of nodes in reboot issued state", nil, nil),
-		rebootRequestedNodes:     prometheus.NewDesc("slurm_nodes_reboot_requested", "Number of nodes in reboot requested state", nil, nil),
-		resumeNodes:              prometheus.NewDesc("slurm_nodes_resume", "Number of nodes in resume state", nil, nil),
-		undrainNodes:             prometheus.NewDesc("slurm_nodes_undrain", "Number of nodes in undrain state", nil, nil),
-		unknownNodes:             prometheus.NewDesc("slurm_nodes_unknown", "Number of nodes in unknown state", nil, nil),
+		totalNodes:           prometheus.NewDesc("slurm_nodes_total", "Total number of slurm nodes", nil, nil),
+		allocNodes:           prometheus.NewDesc("slurm_nodes_alloc", "Number of nodes in allocated state", nil, nil),
+		completingNodes:      prometheus.NewDesc("slurm_nodes_completing", "Number of nodes in completing state", nil, nil),
+		downNodes:            prometheus.NewDesc("slurm_nodes_down", "Number of nodes in down state", nil, nil),
+		drainNodes:           prometheus.NewDesc("slurm_nodes_drain", "Number of nodes in drain state", nil, nil),
+		errNodes:             prometheus.NewDesc("slurm_nodes_err", "Number of nodes in error state", nil, nil),
+		idleNodes:            prometheus.NewDesc("slurm_nodes_idle", "Number of nodes in idle state", nil, nil),
+		maintenanceNodes:     prometheus.NewDesc("slurm_nodes_maintenance", "Number of nodes in maintenance state", nil, nil),
+		mixedNodes:           prometheus.NewDesc("slurm_nodes_mixed", "Number of nodes in mixed state", nil, nil),
+		reservedNodes:        prometheus.NewDesc("slurm_nodes_reserved", "Number of nodes in reserved state", nil, nil),
+		cloudNodes:           prometheus.NewDesc("slurm_nodes_cloud", "Number of nodes in cloud state", nil, nil),
+		dynamicFutureNodes:   prometheus.NewDesc("slurm_nodes_dynamic_future", "Number of nodes in dynamic future state", nil, nil),
+		dynamicNormNodes:     prometheus.NewDesc("slurm_nodes_dynamic_norm", "Number of nodes in dynamic norm state", nil, nil),
+		failNodes:            prometheus.NewDesc("slurm_nodes_fail", "Number of nodes in fail state", nil, nil),
+		futureNodes:          prometheus.NewDesc("slurm_nodes_future", "Number of nodes in future state", nil, nil),
+		invalidNodes:         prometheus.NewDesc("slurm_nodes_invalid", "Number of nodes in invalid state", nil, nil),
+		invalidRegNodes:      prometheus.NewDesc("slurm_nodes_invalid_reg", "Number of nodes in invalid reg state", nil, nil),
+		notRespondingNodes:   prometheus.NewDesc("slurm_nodes_not_responding", "Number of nodes in not responding state", nil, nil),
+		plannedNodes:         prometheus.NewDesc("slurm_nodes_planned", "Number of nodes in planned state", nil, nil),
+		powerDownNodes:       prometheus.NewDesc("slurm_nodes_power_down", "Number of nodes in power down state", nil, nil),
+		powerDrainNodes:      prometheus.NewDesc("slurm_nodes_power_drain", "Number of nodes in power drain state", nil, nil),
+		poweredDownNodes:     prometheus.NewDesc("slurm_nodes_powered_down", "Number of nodes in powered down state", nil, nil),
+		poweringDownNodes:    prometheus.NewDesc("slurm_nodes_powering_down", "Number of nodes in powering down state", nil, nil),
+		poweringUpNodes:      prometheus.NewDesc("slurm_nodes_powering_up", "Number of nodes in powering up state", nil, nil),
+		powerUpNodes:         prometheus.NewDesc("slurm_nodes_power_up", "Number of nodes in power up state", nil, nil),
+		rebootCanceledNodes:  prometheus.NewDesc("slurm_nodes_reboot_canceled", "Number of nodes in reboot canceled state", nil, nil),
+		rebootIssuedNodes:    prometheus.NewDesc("slurm_nodes_reboot_issued", "Number of nodes in reboot issued state", nil, nil),
+		rebootRequestedNodes: prometheus.NewDesc("slurm_nodes_reboot_requested", "Number of nodes in reboot requested state", nil, nil),
+		resumeNodes:          prometheus.NewDesc("slurm_nodes_resume", "Number of nodes in resume state", nil, nil),
+		undrainNodes:         prometheus.NewDesc("slurm_nodes_undrain", "Number of nodes in undrain state", nil, nil),
+		unknownNodes:         prometheus.NewDesc("slurm_nodes_unknown", "Number of nodes in unknown state", nil, nil),
 		// Node States
 		nodeStateCombined:        prometheus.NewDesc("slurm_state_combined", "Combined Slurm State", combinedStateLabel, nil),
 		nodeStateCloud:           prometheus.NewDesc("slurm_state_cloud", "The cloud state of the node", nodeLabels, nil),
@@ -694,17 +698,17 @@ func NewSlurmCollector(slurmClient client.Client) *SlurmCollector {
 		nodeStateMixed:           prometheus.NewDesc("slurm_state_mixed", "The mixed state of the node", nodeLabels, nil),
 		nodeStateReserved:        prometheus.NewDesc("slurm_state_reserved", "The reserved state of the node", nodeLabels, nil),
 		// User
-		userJobTotal:             prometheus.NewDesc("slurm_user_job_total", "Number of jobs for a slurm user", jobLabel, nil),
-		userCPUsTotal:            prometheus.NewDesc("slurm_user_cpus_total", "Number of cpus for a slurm user", jobLabel, nil),
-		userPendingJobs:          prometheus.NewDesc("slurm_user_pending_jobs", "Number of pending jobs for a slurm user", jobLabel, nil),
-		userRunningJobs:          prometheus.NewDesc("slurm_user_running_jobs", "Number of running jobs for a slurm user", jobLabel, nil),
-		userHoldJobs:             prometheus.NewDesc("slurm_user_hold_jobs", "Number of hold jobs for a slurm user", jobLabel, nil),
+		userTotalCpus:   prometheus.NewDesc("slurm_user_total_cpus", "Total number of CPUs for a slurm user", userJobLabel, nil),
+		userTotalJobs:   prometheus.NewDesc("slurm_user_total_jobs", "Total number of jobs for a slurm user", userJobLabel, nil),
+		userPendingJobs: prometheus.NewDesc("slurm_user_pending_jobs", "Number of pending jobs for a slurm user", userJobLabel, nil),
+		userRunningJobs: prometheus.NewDesc("slurm_user_running_jobs", "Number of running jobs for a slurm user", userJobLabel, nil),
+		userHoldJobs:    prometheus.NewDesc("slurm_user_hold_jobs", "Number of hold jobs for a slurm user", userJobLabel, nil),
 		// Job
-		jobRunning:               prometheus.NewDesc("slurm_job_running", "Job State Running", jobIDLabel, nil),
-		jobPending:               prometheus.NewDesc("slurm_job_pending", "Job State Pending", jobIDLabel, nil),
-		jobHold:                  prometheus.NewDesc("slurm_job_hold", "Job State Hold", jobIDLabel, nil),
-		jobCompleting:            prometheus.NewDesc("slurm_job_completing", "Job State Completing", jobIDLabel, nil),
-		jobCPUAllocation:         prometheus.NewDesc("slurm_job_cpu_allocation", "Job CPU Allocation", jobCPUAllocationLabel, nil),
+		jobRunning:       prometheus.NewDesc("slurm_job_running", "Job State Running", jobLabel, nil),
+		jobPending:       prometheus.NewDesc("slurm_job_pending", "Job State Pending", jobLabel, nil),
+		jobHold:          prometheus.NewDesc("slurm_job_hold", "Job State Hold", jobLabel, nil),
+		jobCompleting:    prometheus.NewDesc("slurm_job_completing", "Job State Completing", jobLabel, nil),
+		jobCPUAllocation: prometheus.NewDesc("slurm_job_cpu_allocation", "Job CPU Allocation", jobCPUAllocationLabel, nil),
 	}
 }
 
@@ -790,8 +794,8 @@ func (s *SlurmCollector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- s.nodeStateMixed
 	ch <- s.nodeStateReserved
 	// User
-	ch <- s.userJobTotal
-	ch <- s.userCPUsTotal
+	ch <- s.userTotalJobs
+	ch <- s.userTotalCpus
 	ch <- s.userRunningJobs
 	ch <- s.userPendingJobs
 	ch <- s.userHoldJobs
@@ -832,9 +836,9 @@ func (s *SlurmCollector) Collect(ch chan<- prometheus.Metric) {
 	// Partitions
 	for p := range slurmData.partitions {
 		ch <- prometheus.MustNewConstMetric(s.partitionNodes, prometheus.GaugeValue, float64(slurmData.partitions[p].Nodes), p)
-		ch <- prometheus.MustNewConstMetric(s.partitionTotalCpus, prometheus.GaugeValue, float64(slurmData.partitions[p].Cpus), p)
-		ch <- prometheus.MustNewConstMetric(s.partitionIdleCpus, prometheus.GaugeValue, float64(slurmData.partitions[p].Idle), p)
-		ch <- prometheus.MustNewConstMetric(s.partitionAllocCpus, prometheus.GaugeValue, float64(slurmData.partitions[p].Alloc), p)
+		ch <- prometheus.MustNewConstMetric(s.partitionTotalCpus, prometheus.GaugeValue, float64(slurmData.partitions[p].TotalCpus), p)
+		ch <- prometheus.MustNewConstMetric(s.partitionIdleCpus, prometheus.GaugeValue, float64(slurmData.partitions[p].IdleCpus), p)
+		ch <- prometheus.MustNewConstMetric(s.partitionAllocCpus, prometheus.GaugeValue, float64(slurmData.partitions[p].AllocCpus), p)
 		ch <- prometheus.MustNewConstMetric(s.partitionTotalJobs, prometheus.GaugeValue, float64(slurmData.partitions[p].Jobs), p)
 		ch <- prometheus.MustNewConstMetric(s.partitionPendingJobs, prometheus.GaugeValue, float64(slurmData.partitions[p].PendingJobs), p)
 		ch <- prometheus.MustNewConstMetric(s.partitionMaxPendingNodes, prometheus.GaugeValue, float64(slurmData.partitions[p].PendingMaxNodes), p)
@@ -842,7 +846,7 @@ func (s *SlurmCollector) Collect(ch chan<- prometheus.Metric) {
 		ch <- prometheus.MustNewConstMetric(s.partitionHoldJobs, prometheus.GaugeValue, float64(slurmData.partitions[p].HoldJobs), p)
 	}
 
-	// States
+	// Node State Counts
 	ch <- prometheus.MustNewConstMetric(s.totalNodes, prometheus.GaugeValue, float64(len(slurmData.nodes)))
 	ch <- prometheus.MustNewConstMetric(s.allocNodes, prometheus.GaugeValue, float64(slurmData.nodestates.allocated))
 	ch <- prometheus.MustNewConstMetric(s.completingNodes, prometheus.GaugeValue, float64(slurmData.nodestates.completing))
@@ -877,10 +881,11 @@ func (s *SlurmCollector) Collect(ch chan<- prometheus.Metric) {
 
 	for n := range slurmData.nodes {
 		// Node CPUs
-		ch <- prometheus.MustNewConstMetric(s.nodeTotalCpus, prometheus.GaugeValue, float64(slurmData.nodes[n].Cpus), n, n)
-		ch <- prometheus.MustNewConstMetric(s.nodeIdleCpus, prometheus.GaugeValue, float64(slurmData.nodes[n].Idle), n, n)
-		ch <- prometheus.MustNewConstMetric(s.nodeAllocCpus, prometheus.GaugeValue, float64(slurmData.nodes[n].Alloc), n, n)
-		// States 2
+		ch <- prometheus.MustNewConstMetric(s.nodeTotalCpus, prometheus.GaugeValue, float64(slurmData.nodes[n].TotalCpus), n, n)
+		ch <- prometheus.MustNewConstMetric(s.nodeIdleCpus, prometheus.GaugeValue, float64(slurmData.nodes[n].IdleCpus), n, n)
+		ch <- prometheus.MustNewConstMetric(s.nodeAllocCpus, prometheus.GaugeValue, float64(slurmData.nodes[n].AllocCpus), n, n)
+
+		// Node States
 		ch <- prometheus.MustNewConstMetric(s.nodeStateCombined, prometheus.GaugeValue, float64(slurmData.nodes[n].unavailable), n, n, slurmData.nodes[n].CombinedState)
 		ch <- prometheus.MustNewConstMetric(s.nodeStateIdle, prometheus.GaugeValue, float64(slurmData.nodes[n].States.idle), n, n)
 		ch <- prometheus.MustNewConstMetric(s.nodeStateAlloc, prometheus.GaugeValue, float64(slurmData.nodes[n].States.allocated), n, n)
@@ -916,8 +921,8 @@ func (s *SlurmCollector) Collect(ch chan<- prometheus.Metric) {
 
 	// User
 	for j := range slurmData.jobs {
-		ch <- prometheus.MustNewConstMetric(s.userCPUsTotal, prometheus.GaugeValue, float64(slurmData.jobs[j].Cpus), j)
-		ch <- prometheus.MustNewConstMetric(s.userJobTotal, prometheus.GaugeValue, float64(slurmData.jobs[j].Count), j)
+		ch <- prometheus.MustNewConstMetric(s.userTotalCpus, prometheus.GaugeValue, float64(slurmData.jobs[j].Cpus), j)
+		ch <- prometheus.MustNewConstMetric(s.userTotalJobs, prometheus.GaugeValue, float64(slurmData.jobs[j].Count), j)
 		ch <- prometheus.MustNewConstMetric(s.userPendingJobs, prometheus.GaugeValue, float64(slurmData.jobs[j].Pending), j)
 		ch <- prometheus.MustNewConstMetric(s.userRunningJobs, prometheus.GaugeValue, float64(slurmData.jobs[j].Running), j)
 		ch <- prometheus.MustNewConstMetric(s.userHoldJobs, prometheus.GaugeValue, float64(slurmData.jobs[j].Hold), j)

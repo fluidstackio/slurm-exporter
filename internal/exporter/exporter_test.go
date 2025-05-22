@@ -86,13 +86,13 @@ func TestSlurmParse(t *testing.T) {
 	assert.Equal(t, &JobData{Count: 2, Pending: 1, Running: 1, Hold: 1, Cpus: 24}, slurmData.jobs["slurm"])
 	assert.Equal(t, &JobData{Count: 1, Pending: 1, Running: 0, Hold: 0, Cpus: 12}, slurmData.jobs["hal"])
 	assert.Equal(t, 2, len(slurmData.partitions))
-	assert.Equal(t, &PartitionData{Nodes: 2, Cpus: 20, PendingJobs: 1, PendingMaxNodes: 1, Jobs: 1, RunningJobs: 0, HoldJobs: 0, Alloc: 4, Idle: 16}, slurmData.partitions["purple"])
-	assert.Equal(t, &PartitionData{Nodes: 2, Cpus: 32, PendingJobs: 1, PendingMaxNodes: 0, Jobs: 2, RunningJobs: 1, HoldJobs: 1, Alloc: 16, Idle: 16}, slurmData.partitions["green"])
+	assert.Equal(t, &PartitionData{Nodes: 2, TotalCpus: 20, PendingJobs: 1, PendingMaxNodes: 1, Jobs: 1, RunningJobs: 0, HoldJobs: 0, AllocCpus: 4, IdleCpus: 16}, slurmData.partitions["purple"])
+	assert.Equal(t, &PartitionData{Nodes: 2, TotalCpus: 32, PendingJobs: 1, PendingMaxNodes: 0, Jobs: 2, RunningJobs: 1, HoldJobs: 1, AllocCpus: 16, IdleCpus: 16}, slurmData.partitions["green"])
 	assert.Equal(t, len(slurmData.nodes), 3)
 	assert.Equal(t, &NodeData{
-		Cpus:  12,
-		Alloc: 0,
-		Idle:  12,
+		TotalCpus: 12,
+		AllocCpus: 0,
+		IdleCpus:  12,
 		States: NodeStates{
 			allocated:  0,
 			completing: 0,
@@ -107,9 +107,9 @@ func TestSlurmParse(t *testing.T) {
 		CombinedState: "idle",
 	}, slurmData.nodes["kind-worker"])
 	assert.Equal(t, &NodeData{
-		Cpus:  24,
-		Alloc: 12,
-		Idle:  12,
+		TotalCpus: 24,
+		AllocCpus: 12,
+		IdleCpus:  12,
 		States: NodeStates{
 			allocated:   1,
 			completing:  0,
@@ -125,9 +125,9 @@ func TestSlurmParse(t *testing.T) {
 		CombinedState: "allocated",
 	}, slurmData.nodes["kind-worker2"])
 	assert.Equal(t, &NodeData{
-		Cpus:  8,
-		Alloc: 4,
-		Idle:  4,
+		TotalCpus: 8,
+		AllocCpus: 4,
+		IdleCpus:  4,
 		States: NodeStates{
 			allocated:   0,
 			completing:  1,
