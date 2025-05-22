@@ -28,8 +28,8 @@ import (
 var (
 	partitionLabel        = []string{"partition"}
 	nodeLabels            = []string{"node", "hostname"}
-	jobLabel              = []string{"user"}
-	jobIDLabel            = []string{"jobid", "nodes"}
+	userJobLabel          = []string{"user"}
+	jobLabel              = []string{"jobid", "nodes"}
 	jobCPUAllocationLabel = []string{"jobid", "core", "socket", "hostname"}
 	combinedStateLabel    = []string{"node", "hostname", "combinedState"}
 	nodeReasonLabel       = []string{"node", "hostname", "reason", "user2", "timestamp"}
@@ -616,17 +616,17 @@ func NewSlurmCollector(slurmClient client.Client) *SlurmCollector {
 	return &SlurmCollector{
 		slurmClient:              slurmClient,
 		// Partitions
-		partitionNodes:           prometheus.NewDesc("slurm_partition_nodes", "Number of nodes in a slurm partition", partitionLabel, nil),
+		partitionNodes:           prometheus.NewDesc("slurm_partition_total_nodes", "Total number of nodes in a slurm partition", partitionLabel, nil),
 		partitionTotalCpus:       prometheus.NewDesc("slurm_partition_total_cpus", "Number of CPUs in a slurm partition", partitionLabel, nil),
 		partitionIdleCpus:        prometheus.NewDesc("slurm_partition_idle_cpus", "Number of idle CPUs in a slurm partition", partitionLabel, nil),
 		partitionAllocCpus:       prometheus.NewDesc("slurm_partition_alloc_cpus", "Number of allocated CPUs in a slurm partition", partitionLabel, nil),
-		partitionTotalJobs:       prometheus.NewDesc("slurm_partition_jobs", "Total number of jobs in a slurm partition", partitionLabel, nil),
+		partitionTotalJobs:       prometheus.NewDesc("slurm_partition_total_jobs", "Total number of jobs in a slurm partition", partitionLabel, nil),
 		partitionPendingJobs:     prometheus.NewDesc("slurm_partition_pending_jobs", "Number of pending jobs in a slurm partition", partitionLabel, nil),
 		partitionMaxPendingNodes: prometheus.NewDesc("slurm_partition_max_pending_nodes", "Number of nodes pending for the largest job in the partition", partitionLabel, nil),
 		partitionRunningJobs:     prometheus.NewDesc("slurm_partition_running_jobs", "Number of running jobs in a slurm partition", partitionLabel, nil),
 		partitionHoldJobs:        prometheus.NewDesc("slurm_partition_hold_jobs", "Number of hold jobs in a slurm partition", partitionLabel, nil),
 		// Node CPUs
-		nodeTotalCpus:            prometheus.NewDesc("slurm_node_total_cpus", "Number of CPUs in a slurm node", nodeLabels, nil),
+		nodeTotalCpus:            prometheus.NewDesc("slurm_node_total_cpus", "Total number of CPUs in a slurm node", nodeLabels, nil),
 		nodeIdleCpus:             prometheus.NewDesc("slurm_node_idle_cpus", "Number of idle CPUs in a slurm node", nodeLabels, nil),
 		nodeAllocCpus:            prometheus.NewDesc("slurm_node_alloc_cpus", "Number of allocated CPUs in a slurm node", nodeLabels, nil),
 		// Node State Counts
@@ -694,16 +694,16 @@ func NewSlurmCollector(slurmClient client.Client) *SlurmCollector {
 		nodeStateMixed:           prometheus.NewDesc("slurm_state_mixed", "The mixed state of the node", nodeLabels, nil),
 		nodeStateReserved:        prometheus.NewDesc("slurm_state_reserved", "The reserved state of the node", nodeLabels, nil),
 		// User
-		userJobTotal:             prometheus.NewDesc("slurm_user_job_total", "Number of jobs for a slurm user", jobLabel, nil),
-		userCPUsTotal:            prometheus.NewDesc("slurm_user_cpus_total", "Number of cpus for a slurm user", jobLabel, nil),
-		userPendingJobs:          prometheus.NewDesc("slurm_user_pending_jobs", "Number of pending jobs for a slurm user", jobLabel, nil),
-		userRunningJobs:          prometheus.NewDesc("slurm_user_running_jobs", "Number of running jobs for a slurm user", jobLabel, nil),
-		userHoldJobs:             prometheus.NewDesc("slurm_user_hold_jobs", "Number of hold jobs for a slurm user", jobLabel, nil),
+		userCPUsTotal:            prometheus.NewDesc("slurm_user_total_cpus", "Total number of CPUs for a slurm user", userJobLabel, nil),
+		userJobTotal:             prometheus.NewDesc("slurm_user_total_jobs", "Total number of jobs for a slurm user", userJobLabel, nil),
+		userPendingJobs:          prometheus.NewDesc("slurm_user_pending_jobs", "Number of pending jobs for a slurm user", userJobLabel, nil),
+		userRunningJobs:          prometheus.NewDesc("slurm_user_running_jobs", "Number of running jobs for a slurm user", userJobLabel, nil),
+		userHoldJobs:             prometheus.NewDesc("slurm_user_hold_jobs", "Number of hold jobs for a slurm user", userJobLabel, nil),
 		// Job
-		jobRunning:               prometheus.NewDesc("slurm_job_running", "Job State Running", jobIDLabel, nil),
-		jobPending:               prometheus.NewDesc("slurm_job_pending", "Job State Pending", jobIDLabel, nil),
-		jobHold:                  prometheus.NewDesc("slurm_job_hold", "Job State Hold", jobIDLabel, nil),
-		jobCompleting:            prometheus.NewDesc("slurm_job_completing", "Job State Completing", jobIDLabel, nil),
+		jobRunning:               prometheus.NewDesc("slurm_job_running", "Job State Running", jobLabel, nil),
+		jobPending:               prometheus.NewDesc("slurm_job_pending", "Job State Pending", jobLabel, nil),
+		jobHold:                  prometheus.NewDesc("slurm_job_hold", "Job State Hold", jobLabel, nil),
+		jobCompleting:            prometheus.NewDesc("slurm_job_completing", "Job State Completing", jobLabel, nil),
 		jobCPUAllocation:         prometheus.NewDesc("slurm_job_cpu_allocation", "Job CPU Allocation", jobCPUAllocationLabel, nil),
 	}
 }
