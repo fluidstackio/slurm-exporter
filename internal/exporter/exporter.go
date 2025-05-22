@@ -842,7 +842,7 @@ func (s *SlurmCollector) Collect(ch chan<- prometheus.Metric) {
 		ch <- prometheus.MustNewConstMetric(s.partitionHoldJobs, prometheus.GaugeValue, float64(slurmData.partitions[p].HoldJobs), p)
 	}
 
-	// States
+	// Node State Counts
 	ch <- prometheus.MustNewConstMetric(s.totalNodes, prometheus.GaugeValue, float64(len(slurmData.nodes)))
 	ch <- prometheus.MustNewConstMetric(s.allocNodes, prometheus.GaugeValue, float64(slurmData.nodestates.allocated))
 	ch <- prometheus.MustNewConstMetric(s.completingNodes, prometheus.GaugeValue, float64(slurmData.nodestates.completing))
@@ -880,7 +880,8 @@ func (s *SlurmCollector) Collect(ch chan<- prometheus.Metric) {
 		ch <- prometheus.MustNewConstMetric(s.nodeTotalCpus, prometheus.GaugeValue, float64(slurmData.nodes[n].Cpus), n, n)
 		ch <- prometheus.MustNewConstMetric(s.nodeIdleCpus, prometheus.GaugeValue, float64(slurmData.nodes[n].Idle), n, n)
 		ch <- prometheus.MustNewConstMetric(s.nodeAllocCpus, prometheus.GaugeValue, float64(slurmData.nodes[n].Alloc), n, n)
-		// States 2
+
+		// Node States
 		ch <- prometheus.MustNewConstMetric(s.nodeStateCombined, prometheus.GaugeValue, float64(slurmData.nodes[n].unavailable), n, n, slurmData.nodes[n].CombinedState)
 		ch <- prometheus.MustNewConstMetric(s.nodeStateIdle, prometheus.GaugeValue, float64(slurmData.nodes[n].States.idle), n, n)
 		ch <- prometheus.MustNewConstMetric(s.nodeStateAlloc, prometheus.GaugeValue, float64(slurmData.nodes[n].States.allocated), n, n)
