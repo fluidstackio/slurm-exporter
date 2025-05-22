@@ -27,12 +27,12 @@ import (
 
 var (
 	partitionLabel        = []string{"partition"}
-	nodeLabels            = []string{"node", "hostname"}
+	nodeLabels            = []string{"hostname"}
 	userJobLabel          = []string{"user"}
 	jobLabel              = []string{"jobid", "nodes"}
-	jobCPUAllocationLabel = []string{"jobid", "core", "socket", "hostname"}
-	combinedStateLabel    = []string{"node", "hostname", "combinedState"}
-	nodeReasonLabel       = []string{"node", "hostname", "reason", "user2", "timestamp"}
+	jobCPUAllocationLabel = []string{"hostname", "jobid", "core", "socket"}
+	combinedStateLabel    = []string{"hostname", "combinedState"}
+	nodeReasonLabel       = []string{"hostname", "reason", "user"}
 )
 
 type PartitionData struct {
