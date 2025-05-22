@@ -32,10 +32,10 @@ spec:
       hostname: {{ include "slurm-exporter.name" . }}
       priorityClassName: {{ .Values.exporter.priorityClassName | default .Values.priorityClassName }}
       automountServiceAccountToken: false
-      {{- if .Values.exporter.affinity }}
+      {{- with .Values.exporter.affinity }}
       affinity:
-        {{- .Values.exporter.affinity | toYaml | nindent 8 }}
-      {{- end }}{{- /* if .Values.exporter.affinity */}}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}{{- /* with .Values.exporter.affinity */}}
       {{- include "slurm-exporter.imagePullSecrets" . | nindent 6 }}
       containers:
         - name: metrics
@@ -43,10 +43,10 @@ spec:
           imagePullPolicy: {{ .Values.exporter.imagePullPolicy | default (include "slurm-exporter.imagePullPolicy" .) }}
           securityContext:
             {{- include "slurm-exporter.securityContext" . | nindent 12 }}
-          {{- if .Values.exporter.resources }}
+          {{- with .Values.exporter.resources }}
           resources:
-            {{- .Values.exporter.resources | toYaml | nindent 12 }}
-          {{- end }}{{- /* if .Values.exporter.resources */}}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}{{- /* with .Values.exporter.resources */}}
           args:
             - --server
             - {{ printf "http://%s.%s:%s" (include "slurm-exporter.restapi.name" .) (include "slurm-exporter.namespace" .) (include "slurm-exporter.restapi.port" .) }}
