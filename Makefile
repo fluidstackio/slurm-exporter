@@ -70,7 +70,6 @@ push: docker-bake-push ## Push container images.
 clean: ## Clean executable files.
 	@ chmod -R -f u+w bin/ || true # make test installs files without write permissions.
 	rm -rf bin/
-	rm -f govulnreport.txt
 	rm -f cover.out cover.html
 	rm -f *.tgz
 
@@ -116,10 +115,17 @@ mv "$$(echo "$(1)" | sed "s/-$(3)$$//")" $(1) ;\
 endef
 
 ## Tool Binaries
+GOVULNCHECK ?= $(LOCALBIN)/govulncheck-$(GOVULNCHECK_VERSION)
 GOLANGCI_LINT ?= $(LOCALBIN)/golangci-lint-$(GOLANGCI_LINT_VERSION)
 
 ## Tool Versions
+GOVULNCHECK_VERSION ?= latest
 GOLANGCI_LINT_VERSION ?= v2.1.6
+
+.PHONY: govulncheck-bin
+govulncheck-bin: $(GOVULNCHECK) ## Download govulncheck locally if necessary.
+$(GOVULNCHECK): $(LOCALBIN)
+	$(call go-install-tool,$(GOVULNCHECK),golang.org/x/vuln/cmd/govulncheck,$(GOVULNCHECK_VERSION))
 
 .PHONY: golangci-lint-bin
 golangci-lint-bin: $(GOLANGCI_LINT) ## Download golangci-lint locally if necessary.
@@ -132,7 +138,6 @@ $(GOLANGCI_LINT): $(LOCALBIN)
 .PHONY: install-dev
 install-dev: ## Install binaries for development environment.
 	go install github.com/norwoodj/helm-docs/cmd/helm-docs@latest
-	go install golang.org/x/vuln/cmd/govulncheck@latest
 	go install github.com/go-delve/delve/cmd/dlv@latest
 	go install sigs.k8s.io/kind@latest
 
@@ -161,6 +166,10 @@ get-u: ## Run `go get -u`
 vet: ## Run go vet against code.
 	go vet ./...
 
+.PHONY: govulncheck
+govulncheck: govulncheck-bin ## Run govulncheck
+	$(GOVULNCHECK) ./...
+
 # https://github.com/golangci/golangci-lint/blob/main/.pre-commit-hooks.yaml
 .PHONY: golangci-lint
 golangci-lint: golangci-lint-bin ## Run golangci-lint.
@@ -185,11 +194,3 @@ test: ## Run tests.
 			echo "Total test coverage ($${percentage}%) is less than the coverage threshold ($(CODECOV_PERCENT)%)."; \
 			exit 1; \
 		fi
-
-.PHONY: vuln-scan
-vuln-scan: ## Run vulnerability scanning tool
-	GOBIN=$(LOCALBIN) go install golang.org/x/vuln/cmd/govulncheck@latest
-	$(LOCALBIN)/govulncheck ./... > govulnreport.txt 2>&1 || echo "Found vulnerabilities. Details in govulnreport.txt"
-
-.PHONY: audit
-audit: fmt tidy vet vuln-scan
