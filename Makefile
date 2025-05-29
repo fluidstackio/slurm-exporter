@@ -59,11 +59,13 @@ all: build ## Build slurm-exporter.
 REGISTRY ?= slinky.slurm.net
 
 .PHONY: build
-build: docker-bake ## Build manager binary.
-	helm package helm/slurm-exporter
+build: ## Build container images.
+	REGISTRY=$(REGISTRY) VERSION=$(VERSION) docker buildx bake
+	$(foreach chart, $(wildcard ./helm/**/Chart.yaml), helm package --dependency-update helm/$(shell basename "$(shell dirname "${chart}")") ;)
 
 .PHONY: push
-push: docker-bake-push ## Push container images.
+push: build ## Push container images.
+	REGISTRY=$(REGISTRY) VERSION=$(VERSION) docker buildx bake --push
 	$(foreach chart, $(wildcard ./*.tgz), helm push ${chart} oci://$(REGISTRY)/charts ;)
 
 .PHONY: clean
