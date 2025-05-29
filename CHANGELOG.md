@@ -17,6 +17,7 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 
 - Fixed image tag incorrectly defaulting to appVersion instead of version.
+- Fixed update strategies employing `Recreate` when unnecessary.
 
 ### Changed
 
