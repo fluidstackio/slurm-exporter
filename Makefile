@@ -117,10 +117,12 @@ endef
 ## Tool Binaries
 GOVULNCHECK ?= $(LOCALBIN)/govulncheck-$(GOVULNCHECK_VERSION)
 GOLANGCI_LINT ?= $(LOCALBIN)/golangci-lint-$(GOLANGCI_LINT_VERSION)
+HELM_DOCS ?= $(LOCALBIN)/helm-docs-$(HELM_DOCS_VERSION)
 
 ## Tool Versions
 GOVULNCHECK_VERSION ?= latest
 GOLANGCI_LINT_VERSION ?= v2.1.6
+HELM_DOCS_VERSION ?= v1.14.2
 
 .PHONY: govulncheck-bin
 govulncheck-bin: $(GOVULNCHECK) ## Download govulncheck locally if necessary.
@@ -133,13 +135,28 @@ $(GOLANGCI_LINT): $(LOCALBIN)
 	wget -O- -nv https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b $(LOCALBIN) $(GOLANGCI_LINT_VERSION)
 	mv $(LOCALBIN)/golangci-lint $(GOLANGCI_LINT)
 
+.PHONY: helm-docs-bin
+helm-docs-bin: $(HELM_DOCS) ## Download helm-docs locally if necessary.
+$(HELM_DOCS): $(LOCALBIN)
+	$(call go-install-tool,$(HELM_DOCS),github.com/norwoodj/helm-docs/cmd/helm-docs,$(HELM_DOCS_VERSION))
+
 ##@ Development
 
 .PHONY: install-dev
 install-dev: ## Install binaries for development environment.
-	go install github.com/norwoodj/helm-docs/cmd/helm-docs@latest
 	go install github.com/go-delve/delve/cmd/dlv@latest
 	go install sigs.k8s.io/kind@latest
+
+.PHONY: helm-validate
+helm-validate: helm-dependency-update helm-lint ## Validate Helm charts.
+
+.PHONY: helm-docs
+helm-docs: helm-docs-bin ## Run helm-docs.
+	$(HELM_DOCS) --chart-search-root=helm
+
+.PHONY: helm-lint
+helm-lint: ## Lint Helm charts.
+	find "helm/" -depth -mindepth 1 -maxdepth 1 -type d -print0 | xargs -0r -n1 helm lint --strict
 
 .PHONY: helm-dependency-update
 helm-dependency-update: ## Update Helm chart dependencies.
