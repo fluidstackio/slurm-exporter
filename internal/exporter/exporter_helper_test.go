@@ -171,6 +171,7 @@ var (
 			Cpus:          ptr.To[int32](12),
 			AllocCpus:     ptr.To[int32](0),
 			AllocIdleCpus: ptr.To[int32](12),
+			Gres:          ptr.To("gpu:0"),
 		},
 	}
 	nodeB = &slurmtypes.V0041Node{
@@ -182,6 +183,7 @@ var (
 			Cpus:          ptr.To[int32](24),
 			AllocCpus:     ptr.To[int32](12),
 			AllocIdleCpus: ptr.To[int32](12),
+			Gres:          ptr.To("gpu:8"),
 		},
 	}
 	nodeC = &slurmtypes.V0041Node{
@@ -196,6 +198,7 @@ var (
 			Reason:          ptr.To(""),
 			ReasonSetByUser: ptr.To(""),
 			ReasonChangedAt: ptr.To[api.V0041Uint64NoValStruct](emptyStruct),
+			Gres:            ptr.To("gpu:72"),
 		},
 	}
 )
