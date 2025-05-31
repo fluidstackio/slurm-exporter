@@ -86,13 +86,36 @@ func TestSlurmParse(t *testing.T) {
 	assert.Equal(t, &JobData{Count: 2, Pending: 1, Running: 1, Hold: 1, Cpus: 24}, slurmData.jobs["slurm"])
 	assert.Equal(t, &JobData{Count: 1, Pending: 1, Running: 0, Hold: 0, Cpus: 12}, slurmData.jobs["hal"])
 	assert.Equal(t, 2, len(slurmData.partitions))
-	assert.Equal(t, &PartitionData{Nodes: 2, TotalCpus: 20, PendingJobs: 1, PendingMaxNodes: 1, Jobs: 1, RunningJobs: 0, HoldJobs: 0, AllocCpus: 4, IdleCpus: 16}, slurmData.partitions["purple"])
-	assert.Equal(t, &PartitionData{Nodes: 2, TotalCpus: 32, PendingJobs: 1, PendingMaxNodes: 0, Jobs: 2, RunningJobs: 1, HoldJobs: 1, AllocCpus: 16, IdleCpus: 16}, slurmData.partitions["green"])
+	assert.Equal(t, &PartitionData{
+		Nodes:           2,
+		TotalCpus:       20,
+		PendingJobs:     1,
+		PendingMaxNodes: 1,
+		Jobs:            1,
+		RunningJobs:     0,
+		HoldJobs:        0,
+		AllocCpus:       4,
+		IdleCpus:        16,
+		TotalGpus:       72,
+	}, slurmData.partitions["purple"])
+	assert.Equal(t, &PartitionData{
+		Nodes:           2,
+		TotalCpus:       32,
+		PendingJobs:     1,
+		PendingMaxNodes: 0,
+		Jobs:            2,
+		RunningJobs:     1,
+		HoldJobs:        1,
+		AllocCpus:       16,
+		IdleCpus:        16,
+		TotalGpus:       80,
+	}, slurmData.partitions["green"])
 	assert.Equal(t, len(slurmData.nodes), 3)
 	assert.Equal(t, &NodeData{
 		TotalCpus: 12,
 		AllocCpus: 0,
 		IdleCpus:  12,
+		TotalGpus: 0,
 		States: NodeStates{
 			allocated:  0,
 			completing: 0,
@@ -110,6 +133,7 @@ func TestSlurmParse(t *testing.T) {
 		TotalCpus: 24,
 		AllocCpus: 12,
 		IdleCpus:  12,
+		TotalGpus: 8,
 		States: NodeStates{
 			allocated:   1,
 			completing:  0,
@@ -128,6 +152,7 @@ func TestSlurmParse(t *testing.T) {
 		TotalCpus: 8,
 		AllocCpus: 4,
 		IdleCpus:  4,
+		TotalGpus: 72,
 		States: NodeStates{
 			allocated:   0,
 			completing:  1,
@@ -255,7 +280,7 @@ func TestCollect(t *testing.T) {
 		numMetric++
 	}
 	assert.NotNil(t, metric)
-	assert.Equal(t, 168, numMetric)
+	assert.Equal(t, 173, numMetric)
 }
 
 // TestDescribe will test the Prometheus Describe method that implements
@@ -278,7 +303,7 @@ func TestDescribe(t *testing.T) {
 		assert.NotNil(t, desc)
 	}
 	assert.NotNil(t, desc)
-	assert.Equal(t, 84, numDesc)
+	assert.Equal(t, 86, numDesc)
 }
 
 // TestNewSlurmCollector will test that NewSlurmCollector
