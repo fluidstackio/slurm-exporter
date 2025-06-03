@@ -10,6 +10,8 @@ var (
 
 	nodeLabels = []string{"node"}
 
+	nodeReasonLabels = []string{"node", "reason", "user"}
+
 	partitionLabels = []string{"partition"}
 
 	combinedStateLabels = []string{"node", "combined_state"}
