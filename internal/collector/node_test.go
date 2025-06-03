@@ -174,6 +174,100 @@ func Test_calculateNodeState(t *testing.T) {
 	}
 }
 
+func Test_calculateNodeCombinedState(t *testing.T) {
+	type args struct {
+		node types.V0041Node
+	}
+	tests := []struct {
+		name string
+		args args
+		want *NodeCombinedState
+	}{
+		{
+			name: "idle",
+			args: args{
+				node: types.V0041Node{V0041Node: api.V0041Node{
+					State: ptr.To([]api.V0041NodeState{
+						api.V0041NodeStateIDLE,
+					}),
+				}},
+			},
+			want: &NodeCombinedState{
+				CombinedState: "idle",
+				Unavailable:   0,
+			},
+		},
+		{
+			name: "down",
+			args: args{
+				node: types.V0041Node{V0041Node: api.V0041Node{
+					State: ptr.To([]api.V0041NodeState{
+						api.V0041NodeStateDOWN,
+					}),
+				}},
+			},
+			want: &NodeCombinedState{
+				CombinedState: "down",
+				Unavailable:   1,
+			},
+		},
+		{
+			name: "mixed+drain",
+			args: args{
+				node: types.V0041Node{V0041Node: api.V0041Node{
+					State: ptr.To([]api.V0041NodeState{
+						api.V0041NodeStateMIXED,
+						api.V0041NodeStateDRAIN,
+					}),
+				}},
+			},
+			want: &NodeCombinedState{
+				CombinedState: "drain+mixed",
+				Unavailable:   0, // drain + mixed = available
+			},
+		},
+		{
+			name: "allocated+drain",
+			args: args{
+				node: types.V0041Node{V0041Node: api.V0041Node{
+					State: ptr.To([]api.V0041NodeState{
+						api.V0041NodeStateALLOCATED,
+						api.V0041NodeStateDRAIN,
+					}),
+				}},
+			},
+			want: &NodeCombinedState{
+				CombinedState: "allocated+drain",
+				Unavailable:   0, // drain + allocated = available
+			},
+		},
+		{
+			name: "multiple states",
+			args: args{
+				node: types.V0041Node{V0041Node: api.V0041Node{
+					State: ptr.To([]api.V0041NodeState{
+						api.V0041NodeStateIDLE,
+						api.V0041NodeStatePLANNED,
+						api.V0041NodeStateRESERVED,
+					}),
+				}},
+			},
+			want: &NodeCombinedState{
+				CombinedState: "idle+planned+reserved",
+				Unavailable:   0,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := calculateNodeCombinedState(tt.args.node)
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("calculateNodeCombinedState() = (-want,+got):\n%s", diff)
+			}
+		})
+	}
+}
+
 func Test_calculateNodeTres(t *testing.T) {
 	type args struct {
 		node types.V0041Node
@@ -286,7 +380,8 @@ func TestNodeCollector_getNodeMetrics(t *testing.T) {
 				ctx: context.TODO(),
 			},
 			want: &NodeCollectorMetrics{
-				NodeTresPer: map[string]*NodeTres{},
+				NodeTresPer:        map[string]*NodeTres{},
+				NodeCombinedStates: map[string]*NodeCombinedState{},
 			},
 		},
 		{
@@ -354,6 +449,24 @@ func TestNodeCollector_getNodeMetrics(t *testing.T) {
 						MemoryEffective: 1024,
 						MemoryAlloc:     800,
 						MemoryFree:      224,
+					},
+				},
+				NodeCombinedStates: map[string]*NodeCombinedState{
+					"node0": {
+						CombinedState: "idle",
+						Unavailable:   0,
+					},
+					"node1": {
+						CombinedState: "allocated",
+						Unavailable:   0,
+					},
+					"node2": {
+						CombinedState: "allocated+drain",
+						Unavailable:   0,
+					},
+					"node3": {
+						CombinedState: "completing+mixed",
+						Unavailable:   0,
 					},
 				},
 			},
