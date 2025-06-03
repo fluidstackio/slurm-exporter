@@ -82,6 +82,8 @@ func NewPartitionCollector(slurmClient client.Client) prometheus.Collector {
 			MemoryEffective: prometheus.NewDesc("slurm_partition_nodes_memory_effective_bytes", "Total amount of effective Memory (MB) on the node, excludes MemSpec", partitionLabels, nil),
 			MemoryAlloc:     prometheus.NewDesc("slurm_partition_nodes_memory_alloc_bytes", "Amount of Allocated Memory (MB) on the node", partitionLabels, nil),
 			MemoryFree:      prometheus.NewDesc("slurm_partition_nodes_memory_free_bytes", "Amount of Free Memory (MB) on the node", partitionLabels, nil),
+			// GPUs
+			GpusTotal: prometheus.NewDesc("slurm_partition_nodes_gpus_total", "Total number of GPUs in the partition", partitionLabels, nil),
 		},
 	}
 }
@@ -170,6 +172,7 @@ func (c *partitionCollector) Collect(ch chan<- prometheus.Metric) {
 		ch <- prometheus.MustNewConstMetric(c.NodeTres.MemoryEffective, prometheus.GaugeValue, float64(data.NodeTres.MemoryEffective), partition)
 		ch <- prometheus.MustNewConstMetric(c.NodeTres.MemoryAlloc, prometheus.GaugeValue, float64(data.NodeTres.MemoryAlloc), partition)
 		ch <- prometheus.MustNewConstMetric(c.NodeTres.MemoryFree, prometheus.GaugeValue, float64(data.NodeTres.MemoryFree), partition)
+		ch <- prometheus.MustNewConstMetric(c.NodeTres.GpusTotal, prometheus.GaugeValue, float64(data.NodeTres.GpusTotal), partition)
 	}
 }
 
