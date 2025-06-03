@@ -53,6 +53,8 @@ func NewNodeCollector(slurmClient client.Client) prometheus.Collector {
 			MemoryEffective: prometheus.NewDesc("slurm_node_memory_effective_bytes", "Total amount of effective Memory (MB) on the node, excludes MemSpec", nodeLabels, nil),
 			MemoryAlloc:     prometheus.NewDesc("slurm_node_memory_alloc_bytes", "Amount of Allocated Memory (MB) on the node", nodeLabels, nil),
 			MemoryFree:      prometheus.NewDesc("slurm_node_memory_free_bytes", "Amount of Free Memory (MB) on the node", nodeLabels, nil),
+			// GPUs
+			GpusTotal: prometheus.NewDesc("slurm_node_gpus_total", "Total number of GPUs on the node", nodeLabels, nil),
 		},
 	}
 }
@@ -98,6 +100,8 @@ type nodeTresCollector struct {
 	MemoryEffective *prometheus.Desc
 	MemoryAlloc     *prometheus.Desc
 	MemoryFree      *prometheus.Desc
+	// GPUs
+	GpusTotal *prometheus.Desc
 }
 
 func (c *nodeCollector) Describe(ch chan<- *prometheus.Desc) {
@@ -151,6 +155,8 @@ func (c *nodeCollector) Collect(ch chan<- prometheus.Metric) {
 		ch <- prometheus.MustNewConstMetric(c.NodeTres.MemoryEffective, prometheus.GaugeValue, float64(data.MemoryEffective), node)
 		ch <- prometheus.MustNewConstMetric(c.NodeTres.MemoryAlloc, prometheus.GaugeValue, float64(data.MemoryAlloc), node)
 		ch <- prometheus.MustNewConstMetric(c.NodeTres.MemoryFree, prometheus.GaugeValue, float64(data.MemoryFree), node)
+		// GPUs
+		ch <- prometheus.MustNewConstMetric(c.NodeTres.GpusTotal, prometheus.GaugeValue, float64(data.GpusTotal), node)
 	}
 }
 
@@ -244,6 +250,8 @@ func calculateNodeTres(metrics *NodeTres, node types.V0041Node) {
 	metrics.MemoryEffective += uint(ptr.Deref(node.RealMemory, 0) - ptr.Deref(node.SpecializedMemory, 0))
 	metrics.MemoryAlloc += uint(ptr.Deref(node.AllocMemory, 0))
 	metrics.MemoryFree += uint(ParseUint64NoVal(node.FreeMem))
+	// GPUs
+	metrics.GpusTotal += uint(ParseNodeGresGpu(ptr.Deref(node.Gres, "")))
 }
 
 type NodeCollectorMetrics struct {
@@ -298,6 +306,8 @@ type NodeTres struct {
 	MemoryEffective uint
 	MemoryAlloc     uint
 	MemoryFree      uint
+	// GPUs
+	GpusTotal uint
 }
 
 func calculateNodeCombinedState(node types.V0041Node) *NodeCombinedState {
