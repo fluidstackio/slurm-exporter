@@ -5,6 +5,7 @@ package collector
 
 import (
 	"context"
+	"strings"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"k8s.io/utils/ptr"
@@ -40,6 +41,7 @@ func NewNodeCollector(slurmClient client.Client) prometheus.Collector {
 			RebootRequested: prometheus.NewDesc("slurm_nodes_rebootrequested_total", "Number of nodes with RebootRequested flag", nil, nil),
 			Reserved:        prometheus.NewDesc("slurm_nodes_reserved_total", "Number of nodes with Reserved flag", nil, nil),
 		},
+		NodeCombinedState: prometheus.NewDesc("slurm_state_combined", "Combined Slurm node state (0=available, 1=unavailable)", combinedStateLabels, nil),
 		NodeTres: nodeTresCollector{
 			// CPUs
 			CpusTotal:     prometheus.NewDesc("slurm_node_cpus_total", "Total number of CPUs on the node", nodeLabels, nil),
@@ -59,9 +61,10 @@ func NewNodeCollector(slurmClient client.Client) prometheus.Collector {
 type nodeCollector struct {
 	slurmClient client.Client
 
-	NodeCount  *prometheus.Desc
-	NodeStates nodeStatesCollector
-	NodeTres   nodeTresCollector
+	NodeCount         *prometheus.Desc
+	NodeStates        nodeStatesCollector
+	NodeCombinedState *prometheus.Desc
+	NodeTres          nodeTresCollector
 }
 
 type nodeStatesCollector struct {
@@ -132,6 +135,11 @@ func (c *nodeCollector) Collect(ch chan<- prometheus.Metric) {
 	ch <- prometheus.MustNewConstMetric(c.NodeStates.RebootRequested, prometheus.GaugeValue, float64(metrics.NodeStates.RebootRequested))
 	ch <- prometheus.MustNewConstMetric(c.NodeStates.Reserved, prometheus.GaugeValue, float64(metrics.NodeStates.Reserved))
 
+	// Combined State
+	for node, state := range metrics.NodeCombinedStates {
+		ch <- prometheus.MustNewConstMetric(c.NodeCombinedState, prometheus.GaugeValue, float64(state.Unavailable), node, state.CombinedState)
+	}
+
 	for node, data := range metrics.NodeTresPer {
 		// CPUs
 		ch <- prometheus.MustNewConstMetric(c.NodeTres.CpusTotal, prometheus.GaugeValue, float64(data.CpusTotal), node)
@@ -160,7 +168,8 @@ func calculateNodeMetrics(nodeList *types.V0041NodeList) *NodeCollectorMetrics {
 		NodeMetrics: NodeMetrics{
 			NodeCount: uint(len(nodeList.Items)),
 		},
-		NodeTresPer: make(map[string]*NodeTres, len(nodeList.Items)),
+		NodeTresPer:        make(map[string]*NodeTres, len(nodeList.Items)),
+		NodeCombinedStates: make(map[string]*NodeCombinedState, len(nodeList.Items)),
 	}
 	for _, node := range nodeList.Items {
 		key := string(node.GetKey())
@@ -170,6 +179,8 @@ func calculateNodeMetrics(nodeList *types.V0041NodeList) *NodeCollectorMetrics {
 			metrics.NodeTresPer[key] = &NodeTres{}
 		}
 		calculateNodeTres(metrics.NodeTresPer[key], node)
+		// Calculate combined state
+		metrics.NodeCombinedStates[key] = calculateNodeCombinedState(node)
 	}
 	return metrics
 }
@@ -238,7 +249,13 @@ func calculateNodeTres(metrics *NodeTres, node types.V0041Node) {
 type NodeCollectorMetrics struct {
 	NodeMetrics
 	// Per Node
-	NodeTresPer map[string]*NodeTres
+	NodeTresPer        map[string]*NodeTres
+	NodeCombinedStates map[string]*NodeCombinedState
+}
+
+type NodeCombinedState struct {
+	CombinedState string
+	Unavailable   int
 }
 
 type NodeMetrics struct {
@@ -281,4 +298,129 @@ type NodeTres struct {
 	MemoryEffective uint
 	MemoryAlloc     uint
 	MemoryFree      uint
+}
+
+func calculateNodeCombinedState(node types.V0041Node) *NodeCombinedState {
+	states := node.GetStateAsSet()
+	var stateNames []string
+	unavailable := 0
+
+	// Check each state and build the combined state string
+	if states.Has(api.V0041NodeStateALLOCATED) {
+		stateNames = append(stateNames, "allocated")
+	}
+	if states.Has(api.V0041NodeStateCLOUD) {
+		stateNames = append(stateNames, "cloud")
+	}
+	if states.Has(api.V0041NodeStateCOMPLETING) {
+		stateNames = append(stateNames, "completing")
+	}
+	if states.Has(api.V0041NodeStateDOWN) {
+		stateNames = append(stateNames, "down")
+		unavailable = 1
+	}
+	if states.Has(api.V0041NodeStateDRAIN) {
+		stateNames = append(stateNames, "drain")
+		unavailable = 1
+	}
+	if states.Has(api.V0041NodeStateDYNAMICFUTURE) {
+		stateNames = append(stateNames, "dynamicFuture")
+	}
+	if states.Has(api.V0041NodeStateDYNAMICNORM) {
+		stateNames = append(stateNames, "dynamicNorm")
+	}
+	if states.Has(api.V0041NodeStateERROR) {
+		stateNames = append(stateNames, "err")
+		unavailable = 1
+	}
+	if states.Has(api.V0041NodeStateFAIL) {
+		stateNames = append(stateNames, "fail")
+		unavailable = 1
+	}
+	if states.Has(api.V0041NodeStateFUTURE) {
+		stateNames = append(stateNames, "future")
+	}
+	if states.Has(api.V0041NodeStateIDLE) {
+		stateNames = append(stateNames, "idle")
+	}
+	if states.Has(api.V0041NodeStateINVALID) {
+		stateNames = append(stateNames, "invalid")
+		unavailable = 1
+	}
+	if states.Has(api.V0041NodeStateINVALIDREG) {
+		stateNames = append(stateNames, "invalidReg")
+		unavailable = 1
+	}
+	if states.Has(api.V0041NodeStateMAINTENANCE) {
+		stateNames = append(stateNames, "maintenance")
+		unavailable = 1
+	}
+	if states.Has(api.V0041NodeStateMIXED) {
+		stateNames = append(stateNames, "mixed")
+	}
+	if states.Has(api.V0041NodeStateNOTRESPONDING) {
+		stateNames = append(stateNames, "notResponding")
+		unavailable = 1
+	}
+	if states.Has(api.V0041NodeStatePLANNED) {
+		stateNames = append(stateNames, "planned")
+	}
+	if states.Has(api.V0041NodeStatePOWERDOWN) {
+		stateNames = append(stateNames, "powerDown")
+	}
+	if states.Has(api.V0041NodeStatePOWERDRAIN) {
+		stateNames = append(stateNames, "powerDrain")
+	}
+	if states.Has(api.V0041NodeStatePOWEREDDOWN) {
+		stateNames = append(stateNames, "poweredDown")
+		unavailable = 1
+	}
+	if states.Has(api.V0041NodeStatePOWERINGDOWN) {
+		stateNames = append(stateNames, "poweringDown")
+		unavailable = 1
+	}
+	if states.Has(api.V0041NodeStatePOWERINGUP) {
+		stateNames = append(stateNames, "poweringUp")
+		unavailable = 1
+	}
+	if states.Has(api.V0041NodeStatePOWERUP) {
+		stateNames = append(stateNames, "powerUp")
+	}
+	if states.Has(api.V0041NodeStateREBOOTCANCELED) {
+		stateNames = append(stateNames, "rebootCanceled")
+	}
+	if states.Has(api.V0041NodeStateREBOOTISSUED) {
+		stateNames = append(stateNames, "rebootIssued")
+	}
+	if states.Has(api.V0041NodeStateREBOOTREQUESTED) {
+		stateNames = append(stateNames, "rebootRequested")
+	}
+	if states.Has(api.V0041NodeStateRESERVED) {
+		stateNames = append(stateNames, "reserved")
+	}
+	if states.Has(api.V0041NodeStateRESUME) {
+		stateNames = append(stateNames, "resume")
+	}
+	if states.Has(api.V0041NodeStateUNDRAIN) {
+		stateNames = append(stateNames, "undrain")
+	}
+	if states.Has(api.V0041NodeStateUNKNOWN) {
+		stateNames = append(stateNames, "unknown")
+		unavailable = 1
+	}
+
+	// Special case: drain + (allocated or mixed) = available
+	if states.Has(api.V0041NodeStateDRAIN) && (states.Has(api.V0041NodeStateALLOCATED) || states.Has(api.V0041NodeStateMIXED)) {
+		unavailable = 0
+	}
+
+	combinedState := strings.Join(stateNames, "+")
+	if combinedState == "" {
+		combinedState = "none"
+	}
+
+	return &NodeCombinedState{
+		CombinedState: combinedState,
+		Unavailable:   unavailable,
+	}
 }
