@@ -41,7 +41,40 @@ func NewNodeCollector(slurmClient client.Client) prometheus.Collector {
 			RebootRequested: prometheus.NewDesc("slurm_nodes_rebootrequested_total", "Number of nodes with RebootRequested flag", nil, nil),
 			Reserved:        prometheus.NewDesc("slurm_nodes_reserved_total", "Number of nodes with Reserved flag", nil, nil),
 		},
+		// Combined Node State Metrics
 		NodeCombinedState: prometheus.NewDesc("slurm_state_combined", "Combined Slurm node state (0=available, 1=unavailable)", combinedStateLabels, nil),
+		// Individual Node State Metrics
+		NodeStateAllocated:       prometheus.NewDesc("slurm_state_allocated", "The allocated state of the node", nodeLabels, nil),
+		NodeStateCloud:           prometheus.NewDesc("slurm_state_cloud", "The cloud state of the node", nodeLabels, nil),
+		NodeStateCompleting:      prometheus.NewDesc("slurm_state_completing", "The completing state of the node", nodeLabels, nil),
+		NodeStateDown:            prometheus.NewDesc("slurm_state_down", "The down state of the node", nodeReasonLabels, nil),
+		NodeStateDrain:           prometheus.NewDesc("slurm_state_drain", "The drain state of the node", nodeReasonLabels, nil),
+		NodeStateDynamicFuture:   prometheus.NewDesc("slurm_state_dynamic_future", "The dynamic future state of the node", nodeLabels, nil),
+		NodeStateDynamicNorm:     prometheus.NewDesc("slurm_state_dynamic_norm", "The dynamic norm state of the node", nodeLabels, nil),
+		NodeStateError:           prometheus.NewDesc("slurm_state_error", "The error state of the node", nodeLabels, nil),
+		NodeStateFail:            prometheus.NewDesc("slurm_state_fail", "The fail state of the node", nodeLabels, nil),
+		NodeStateFuture:          prometheus.NewDesc("slurm_state_future", "The future state of the node", nodeLabels, nil),
+		NodeStateIdle:            prometheus.NewDesc("slurm_state_idle", "The idle state of the node", nodeLabels, nil),
+		NodeStateInvalid:         prometheus.NewDesc("slurm_state_invalid", "The invalid state of the node", nodeLabels, nil),
+		NodeStateInvalidReg:      prometheus.NewDesc("slurm_state_invalid_reg", "The invalid reg state of the node", nodeLabels, nil),
+		NodeStateMaintenance:     prometheus.NewDesc("slurm_state_maintenance", "The maintenance state of the node", nodeReasonLabels, nil),
+		NodeStateMixed:           prometheus.NewDesc("slurm_state_mixed", "The mixed state of the node", nodeLabels, nil),
+		NodeStateNotResponding:   prometheus.NewDesc("slurm_state_not_responding", "The not responding state of the node", nodeLabels, nil),
+		NodeStatePlanned:         prometheus.NewDesc("slurm_state_planned", "The planned state of the node", nodeLabels, nil),
+		NodeStatePowerDown:       prometheus.NewDesc("slurm_state_power_down", "The power down state of the node", nodeLabels, nil),
+		NodeStatePowerDrain:      prometheus.NewDesc("slurm_state_power_drain", "The power drain state of the node", nodeLabels, nil),
+		NodeStatePoweredDown:     prometheus.NewDesc("slurm_state_powered_down", "The powered down state of the node", nodeLabels, nil),
+		NodeStatePoweringDown:    prometheus.NewDesc("slurm_state_powering_down", "The powering down state of the node", nodeLabels, nil),
+		NodeStatePoweringUp:      prometheus.NewDesc("slurm_state_powering_up", "The powering up state of the node", nodeLabels, nil),
+		NodeStatePowerUp:         prometheus.NewDesc("slurm_state_power_up", "The power up state of the node", nodeLabels, nil),
+		NodeStateRebootCanceled:  prometheus.NewDesc("slurm_state_reboot_canceled", "The reboot canceled state of the node", nodeLabels, nil),
+		NodeStateRebootIssued:    prometheus.NewDesc("slurm_state_reboot_issued", "The reboot issued state of the node", nodeLabels, nil),
+		NodeStateRebootRequested: prometheus.NewDesc("slurm_state_reboot_requested", "The reboot requested state of the node", nodeLabels, nil),
+		NodeStateReserved:        prometheus.NewDesc("slurm_state_reserved", "The reserved state of the node", nodeLabels, nil),
+		NodeStateResume:          prometheus.NewDesc("slurm_state_resume", "The resume state of the node", nodeLabels, nil),
+		NodeStateUndrain:         prometheus.NewDesc("slurm_state_undrain", "The undrain state of the node", nodeLabels, nil),
+		NodeStateUnknown:         prometheus.NewDesc("slurm_state_unknown", "The unknown state of the node", nodeLabels, nil),
+		// Node Resource Metrics
 		NodeTres: nodeTresCollector{
 			// CPUs
 			CpusTotal:     prometheus.NewDesc("slurm_node_cpus_total", "Total number of CPUs on the node", nodeLabels, nil),
@@ -63,10 +96,43 @@ func NewNodeCollector(slurmClient client.Client) prometheus.Collector {
 type nodeCollector struct {
 	slurmClient client.Client
 
-	NodeCount         *prometheus.Desc
-	NodeStates        nodeStatesCollector
+	NodeCount  *prometheus.Desc
+	NodeStates nodeStatesCollector
+	// Combined Node State Metrics
 	NodeCombinedState *prometheus.Desc
-	NodeTres          nodeTresCollector
+	// Individual Node State Metrics
+	NodeStateAllocated       *prometheus.Desc
+	NodeStateCloud           *prometheus.Desc
+	NodeStateCompleting      *prometheus.Desc
+	NodeStateDown            *prometheus.Desc
+	NodeStateDrain           *prometheus.Desc
+	NodeStateDynamicFuture   *prometheus.Desc
+	NodeStateDynamicNorm     *prometheus.Desc
+	NodeStateError           *prometheus.Desc
+	NodeStateFail            *prometheus.Desc
+	NodeStateFuture          *prometheus.Desc
+	NodeStateIdle            *prometheus.Desc
+	NodeStateInvalid         *prometheus.Desc
+	NodeStateInvalidReg      *prometheus.Desc
+	NodeStateMaintenance     *prometheus.Desc
+	NodeStateMixed           *prometheus.Desc
+	NodeStateNotResponding   *prometheus.Desc
+	NodeStatePlanned         *prometheus.Desc
+	NodeStatePowerDown       *prometheus.Desc
+	NodeStatePowerDrain      *prometheus.Desc
+	NodeStatePoweredDown     *prometheus.Desc
+	NodeStatePoweringDown    *prometheus.Desc
+	NodeStatePoweringUp      *prometheus.Desc
+	NodeStatePowerUp         *prometheus.Desc
+	NodeStateRebootCanceled  *prometheus.Desc
+	NodeStateRebootIssued    *prometheus.Desc
+	NodeStateRebootRequested *prometheus.Desc
+	NodeStateReserved        *prometheus.Desc
+	NodeStateResume          *prometheus.Desc
+	NodeStateUndrain         *prometheus.Desc
+	NodeStateUnknown         *prometheus.Desc
+	// Node Resource Metrics
+	NodeTres nodeTresCollector
 }
 
 type nodeStatesCollector struct {
@@ -139,11 +205,106 @@ func (c *nodeCollector) Collect(ch chan<- prometheus.Metric) {
 	ch <- prometheus.MustNewConstMetric(c.NodeStates.RebootRequested, prometheus.GaugeValue, float64(metrics.NodeStates.RebootRequested))
 	ch <- prometheus.MustNewConstMetric(c.NodeStates.Reserved, prometheus.GaugeValue, float64(metrics.NodeStates.Reserved))
 
-	// Combined State
+	// Combined Node State Metrics
 	for node, state := range metrics.NodeCombinedStates {
 		ch <- prometheus.MustNewConstMetric(c.NodeCombinedState, prometheus.GaugeValue, float64(state.Unavailable), node, state.CombinedState)
 	}
 
+	// Individual Node State Metrics - only emit when state is active (value = 1)
+	for node, states := range metrics.NodeIndividualStates {
+		if states.Allocated == 1 {
+			ch <- prometheus.MustNewConstMetric(c.NodeStateAllocated, prometheus.GaugeValue, 1, node)
+		}
+		if states.Cloud == 1 {
+			ch <- prometheus.MustNewConstMetric(c.NodeStateCloud, prometheus.GaugeValue, 1, node)
+		}
+		if states.Completing == 1 {
+			ch <- prometheus.MustNewConstMetric(c.NodeStateCompleting, prometheus.GaugeValue, 1, node)
+		}
+		if states.Down == 1 {
+			ch <- prometheus.MustNewConstMetric(c.NodeStateDown, prometheus.GaugeValue, 1, node, states.Reason, states.User)
+		}
+		if states.Drain == 1 {
+			ch <- prometheus.MustNewConstMetric(c.NodeStateDrain, prometheus.GaugeValue, 1, node, states.Reason, states.User)
+		}
+		if states.DynamicFuture == 1 {
+			ch <- prometheus.MustNewConstMetric(c.NodeStateDynamicFuture, prometheus.GaugeValue, 1, node)
+		}
+		if states.DynamicNorm == 1 {
+			ch <- prometheus.MustNewConstMetric(c.NodeStateDynamicNorm, prometheus.GaugeValue, 1, node)
+		}
+		if states.Error == 1 {
+			ch <- prometheus.MustNewConstMetric(c.NodeStateError, prometheus.GaugeValue, 1, node)
+		}
+		if states.Fail == 1 {
+			ch <- prometheus.MustNewConstMetric(c.NodeStateFail, prometheus.GaugeValue, 1, node)
+		}
+		if states.Future == 1 {
+			ch <- prometheus.MustNewConstMetric(c.NodeStateFuture, prometheus.GaugeValue, 1, node)
+		}
+		if states.Idle == 1 {
+			ch <- prometheus.MustNewConstMetric(c.NodeStateIdle, prometheus.GaugeValue, 1, node)
+		}
+		if states.Invalid == 1 {
+			ch <- prometheus.MustNewConstMetric(c.NodeStateInvalid, prometheus.GaugeValue, 1, node)
+		}
+		if states.InvalidReg == 1 {
+			ch <- prometheus.MustNewConstMetric(c.NodeStateInvalidReg, prometheus.GaugeValue, 1, node)
+		}
+		if states.Maintenance == 1 {
+			ch <- prometheus.MustNewConstMetric(c.NodeStateMaintenance, prometheus.GaugeValue, 1, node, states.Reason, states.User)
+		}
+		if states.Mixed == 1 {
+			ch <- prometheus.MustNewConstMetric(c.NodeStateMixed, prometheus.GaugeValue, 1, node)
+		}
+		if states.NotResponding == 1 {
+			ch <- prometheus.MustNewConstMetric(c.NodeStateNotResponding, prometheus.GaugeValue, 1, node)
+		}
+		if states.Planned == 1 {
+			ch <- prometheus.MustNewConstMetric(c.NodeStatePlanned, prometheus.GaugeValue, 1, node)
+		}
+		if states.PowerDown == 1 {
+			ch <- prometheus.MustNewConstMetric(c.NodeStatePowerDown, prometheus.GaugeValue, 1, node)
+		}
+		if states.PowerDrain == 1 {
+			ch <- prometheus.MustNewConstMetric(c.NodeStatePowerDrain, prometheus.GaugeValue, 1, node)
+		}
+		if states.PoweredDown == 1 {
+			ch <- prometheus.MustNewConstMetric(c.NodeStatePoweredDown, prometheus.GaugeValue, 1, node)
+		}
+		if states.PoweringDown == 1 {
+			ch <- prometheus.MustNewConstMetric(c.NodeStatePoweringDown, prometheus.GaugeValue, 1, node)
+		}
+		if states.PoweringUp == 1 {
+			ch <- prometheus.MustNewConstMetric(c.NodeStatePoweringUp, prometheus.GaugeValue, 1, node)
+		}
+		if states.PowerUp == 1 {
+			ch <- prometheus.MustNewConstMetric(c.NodeStatePowerUp, prometheus.GaugeValue, 1, node)
+		}
+		if states.RebootCanceled == 1 {
+			ch <- prometheus.MustNewConstMetric(c.NodeStateRebootCanceled, prometheus.GaugeValue, 1, node)
+		}
+		if states.RebootIssued == 1 {
+			ch <- prometheus.MustNewConstMetric(c.NodeStateRebootIssued, prometheus.GaugeValue, 1, node)
+		}
+		if states.RebootRequested == 1 {
+			ch <- prometheus.MustNewConstMetric(c.NodeStateRebootRequested, prometheus.GaugeValue, 1, node)
+		}
+		if states.Reserved == 1 {
+			ch <- prometheus.MustNewConstMetric(c.NodeStateReserved, prometheus.GaugeValue, 1, node)
+		}
+		if states.Resume == 1 {
+			ch <- prometheus.MustNewConstMetric(c.NodeStateResume, prometheus.GaugeValue, 1, node)
+		}
+		if states.Undrain == 1 {
+			ch <- prometheus.MustNewConstMetric(c.NodeStateUndrain, prometheus.GaugeValue, 1, node)
+		}
+		if states.Unknown == 1 {
+			ch <- prometheus.MustNewConstMetric(c.NodeStateUnknown, prometheus.GaugeValue, 1, node)
+		}
+	}
+
+	// Node Resource Metrics
 	for node, data := range metrics.NodeTresPer {
 		// CPUs
 		ch <- prometheus.MustNewConstMetric(c.NodeTres.CpusTotal, prometheus.GaugeValue, float64(data.CpusTotal), node)
@@ -174,8 +335,9 @@ func calculateNodeMetrics(nodeList *types.V0041NodeList) *NodeCollectorMetrics {
 		NodeMetrics: NodeMetrics{
 			NodeCount: uint(len(nodeList.Items)),
 		},
-		NodeTresPer:        make(map[string]*NodeTres, len(nodeList.Items)),
-		NodeCombinedStates: make(map[string]*NodeCombinedState, len(nodeList.Items)),
+		NodeTresPer:          make(map[string]*NodeTres, len(nodeList.Items)),
+		NodeCombinedStates:   make(map[string]*NodeCombinedState, len(nodeList.Items)),
+		NodeIndividualStates: make(map[string]*NodeIndividualStates, len(nodeList.Items)),
 	}
 	for _, node := range nodeList.Items {
 		key := string(node.GetKey())
@@ -187,6 +349,8 @@ func calculateNodeMetrics(nodeList *types.V0041NodeList) *NodeCollectorMetrics {
 		calculateNodeTres(metrics.NodeTresPer[key], node)
 		// Calculate combined state
 		metrics.NodeCombinedStates[key] = calculateNodeCombinedState(node)
+		// Calculate individual states
+		metrics.NodeIndividualStates[key] = calculateNodeIndividualStates(node)
 	}
 	return metrics
 }
@@ -257,13 +421,49 @@ func calculateNodeTres(metrics *NodeTres, node types.V0041Node) {
 type NodeCollectorMetrics struct {
 	NodeMetrics
 	// Per Node
-	NodeTresPer        map[string]*NodeTres
-	NodeCombinedStates map[string]*NodeCombinedState
+	NodeTresPer          map[string]*NodeTres
+	NodeCombinedStates   map[string]*NodeCombinedState
+	NodeIndividualStates map[string]*NodeIndividualStates
 }
 
 type NodeCombinedState struct {
 	CombinedState string
 	Unavailable   int
+}
+
+type NodeIndividualStates struct {
+	Allocated       int
+	Cloud           int
+	Completing      int
+	Down            int
+	Drain           int
+	DynamicFuture   int
+	DynamicNorm     int
+	Error           int
+	Fail            int
+	Future          int
+	Idle            int
+	Invalid         int
+	InvalidReg      int
+	Maintenance     int
+	Mixed           int
+	NotResponding   int
+	Planned         int
+	PowerDown       int
+	PowerDrain      int
+	PoweredDown     int
+	PoweringDown    int
+	PoweringUp      int
+	PowerUp         int
+	RebootCanceled  int
+	RebootIssued    int
+	RebootRequested int
+	Reserved        int
+	Resume          int
+	Undrain         int
+	Unknown         int
+	Reason          string
+	User            string
 }
 
 type NodeMetrics struct {
@@ -433,4 +633,105 @@ func calculateNodeCombinedState(node types.V0041Node) *NodeCombinedState {
 		CombinedState: combinedState,
 		Unavailable:   unavailable,
 	}
+}
+
+func calculateNodeIndividualStates(node types.V0041Node) *NodeIndividualStates {
+	states := node.GetStateAsSet()
+	nodeStates := &NodeIndividualStates{
+		Reason: ptr.Deref(node.Reason, ""),
+		User:   ptr.Deref(node.ReasonSetByUser, ""),
+	}
+
+	if states.Has(api.V0041NodeStateALLOCATED) {
+		nodeStates.Allocated = 1
+	}
+	if states.Has(api.V0041NodeStateCLOUD) {
+		nodeStates.Cloud = 1
+	}
+	if states.Has(api.V0041NodeStateCOMPLETING) {
+		nodeStates.Completing = 1
+	}
+	if states.Has(api.V0041NodeStateDOWN) {
+		nodeStates.Down = 1
+	}
+	if states.Has(api.V0041NodeStateDRAIN) {
+		nodeStates.Drain = 1
+	}
+	if states.Has(api.V0041NodeStateDYNAMICFUTURE) {
+		nodeStates.DynamicFuture = 1
+	}
+	if states.Has(api.V0041NodeStateDYNAMICNORM) {
+		nodeStates.DynamicNorm = 1
+	}
+	if states.Has(api.V0041NodeStateERROR) {
+		nodeStates.Error = 1
+	}
+	if states.Has(api.V0041NodeStateFAIL) {
+		nodeStates.Fail = 1
+	}
+	if states.Has(api.V0041NodeStateFUTURE) {
+		nodeStates.Future = 1
+	}
+	if states.Has(api.V0041NodeStateIDLE) {
+		nodeStates.Idle = 1
+	}
+	if states.Has(api.V0041NodeStateINVALID) {
+		nodeStates.Invalid = 1
+	}
+	if states.Has(api.V0041NodeStateINVALIDREG) {
+		nodeStates.InvalidReg = 1
+	}
+	if states.Has(api.V0041NodeStateMAINTENANCE) {
+		nodeStates.Maintenance = 1
+	}
+	if states.Has(api.V0041NodeStateMIXED) {
+		nodeStates.Mixed = 1
+	}
+	if states.Has(api.V0041NodeStateNOTRESPONDING) {
+		nodeStates.NotResponding = 1
+	}
+	if states.Has(api.V0041NodeStatePLANNED) {
+		nodeStates.Planned = 1
+	}
+	if states.Has(api.V0041NodeStatePOWERDOWN) {
+		nodeStates.PowerDown = 1
+	}
+	if states.Has(api.V0041NodeStatePOWERDRAIN) {
+		nodeStates.PowerDrain = 1
+	}
+	if states.Has(api.V0041NodeStatePOWEREDDOWN) {
+		nodeStates.PoweredDown = 1
+	}
+	if states.Has(api.V0041NodeStatePOWERINGDOWN) {
+		nodeStates.PoweringDown = 1
+	}
+	if states.Has(api.V0041NodeStatePOWERINGUP) {
+		nodeStates.PoweringUp = 1
+	}
+	if states.Has(api.V0041NodeStatePOWERUP) {
+		nodeStates.PowerUp = 1
+	}
+	if states.Has(api.V0041NodeStateREBOOTCANCELED) {
+		nodeStates.RebootCanceled = 1
+	}
+	if states.Has(api.V0041NodeStateREBOOTISSUED) {
+		nodeStates.RebootIssued = 1
+	}
+	if states.Has(api.V0041NodeStateREBOOTREQUESTED) {
+		nodeStates.RebootRequested = 1
+	}
+	if states.Has(api.V0041NodeStateRESERVED) {
+		nodeStates.Reserved = 1
+	}
+	if states.Has(api.V0041NodeStateRESUME) {
+		nodeStates.Resume = 1
+	}
+	if states.Has(api.V0041NodeStateUNDRAIN) {
+		nodeStates.Undrain = 1
+	}
+	if states.Has(api.V0041NodeStateUNKNOWN) {
+		nodeStates.Unknown = 1
+	}
+
+	return nodeStates
 }
