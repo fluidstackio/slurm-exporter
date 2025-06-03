@@ -1,0 +1,27 @@
+name: 🚀 Release
+on:
+  release:
+    types: [published]
+
+concurrency:
+  group: ${{ github.ref_name }}_${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: 'Checkout GitHub Action'
+      uses: actions/checkout@main
+
+    - name: 'Login to GitHub Container Registry'
+      uses: docker/login-action@v1
+      with:
+        registry: ghcr.io
+        username: ${{github.actor}}
+        password: ${{secrets.GITHUB_TOKEN}}
+
+    - name: 'Build Docker Image'
+      run: |
+        docker build . --tag ghcr.io/fluidstackio/slurm-exporter:${{ github.ref_name }} --build-arg VERSION=${{ github.ref_name }}
+        docker push ghcr.io/fluidstackio/slurm-exporter:${{ github.ref_name }}
