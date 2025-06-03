@@ -380,8 +380,9 @@ func TestNodeCollector_getNodeMetrics(t *testing.T) {
 				ctx: context.TODO(),
 			},
 			want: &NodeCollectorMetrics{
-				NodeTresPer:        map[string]*NodeTres{},
-				NodeCombinedStates: map[string]*NodeCombinedState{},
+				NodeTresPer:          map[string]*NodeTres{},
+				NodeCombinedStates:   map[string]*NodeCombinedState{},
+				NodeIndividualStates: map[string]*NodeIndividualStates{},
 			},
 		},
 		{
@@ -467,6 +468,30 @@ func TestNodeCollector_getNodeMetrics(t *testing.T) {
 					"node3": {
 						CombinedState: "completing+mixed",
 						Unavailable:   0,
+					},
+				},
+				NodeIndividualStates: map[string]*NodeIndividualStates{
+					"node0": {
+						Idle:   1,
+						Reason: "",
+						User:   "",
+					},
+					"node1": {
+						Allocated: 1,
+						Reason:    "",
+						User:      "",
+					},
+					"node2": {
+						Allocated: 1,
+						Drain:     1,
+						Reason:    "",
+						User:      "",
+					},
+					"node3": {
+						Completing: 1,
+						Mixed:      1,
+						Reason:     "",
+						User:       "",
 					},
 				},
 			},
@@ -599,6 +624,94 @@ func TestNodeCollector_Describe(t *testing.T) {
 			var desc *prometheus.Desc
 			for desc = range tt.args.ch {
 				assert.NotNil(t, desc)
+			}
+		})
+	}
+}
+
+func Test_calculateNodeIndividualStates(t *testing.T) {
+	type args struct {
+		node types.V0041Node
+	}
+	tests := []struct {
+		name string
+		args args
+		want *NodeIndividualStates
+	}{
+		{
+			name: "down node with reason and user",
+			args: args{
+				node: types.V0041Node{V0041Node: api.V0041Node{
+					State: ptr.To([]api.V0041NodeState{
+						api.V0041NodeStateDOWN,
+					}),
+					Reason:          ptr.To("hardware failure"),
+					ReasonSetByUser: ptr.To("admin"),
+				}},
+			},
+			want: &NodeIndividualStates{
+				Down:   1,
+				Reason: "hardware failure",
+				User:   "admin",
+			},
+		},
+		{
+			name: "drain node with reason and user",
+			args: args{
+				node: types.V0041Node{V0041Node: api.V0041Node{
+					State: ptr.To([]api.V0041NodeState{
+						api.V0041NodeStateALLOCATED,
+						api.V0041NodeStateDRAIN,
+					}),
+					Reason:          ptr.To("maintenance scheduled"),
+					ReasonSetByUser: ptr.To("ops-team"),
+				}},
+			},
+			want: &NodeIndividualStates{
+				Allocated: 1,
+				Drain:     1,
+				Reason:    "maintenance scheduled",
+				User:      "ops-team",
+			},
+		},
+		{
+			name: "maintenance node with reason and user",
+			args: args{
+				node: types.V0041Node{V0041Node: api.V0041Node{
+					State: ptr.To([]api.V0041NodeState{
+						api.V0041NodeStateMAINTENANCE,
+					}),
+					Reason:          ptr.To("OS upgrade"),
+					ReasonSetByUser: ptr.To("sysadmin"),
+				}},
+			},
+			want: &NodeIndividualStates{
+				Maintenance: 1,
+				Reason:      "OS upgrade",
+				User:        "sysadmin",
+			},
+		},
+		{
+			name: "idle node with no reason",
+			args: args{
+				node: types.V0041Node{V0041Node: api.V0041Node{
+					State: ptr.To([]api.V0041NodeState{
+						api.V0041NodeStateIDLE,
+					}),
+				}},
+			},
+			want: &NodeIndividualStates{
+				Idle:   1,
+				Reason: "",
+				User:   "",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := calculateNodeIndividualStates(tt.args.node)
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("calculateNodeIndividualStates() = (-want,+got):\n%s", diff)
 			}
 		})
 	}
