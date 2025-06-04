@@ -15,4 +15,6 @@ var (
 	partitionLabels = []string{"partition"}
 
 	combinedStateLabels = []string{"node", "combined_state"}
+
+	jobLabels = []string{"job_id", "job_name", "node"}
 )
