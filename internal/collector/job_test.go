@@ -293,7 +293,9 @@ func TestJobCollector_getJobMetrics(t *testing.T) {
 			args: args{
 				ctx: context.TODO(),
 			},
-			want: &JobMetrics{},
+			want: &JobMetrics{
+				JobIndividualStates: []JobIndividualStates{},
+			},
 		},
 		{
 			name: "test data",
@@ -307,6 +309,7 @@ func TestJobCollector_getJobMetrics(t *testing.T) {
 				JobCount:  4,
 				JobStates: JobStates{Pending: 2, Running: 2, Hold: 1},
 				JobTres:   JobTres{CpusAlloc: 20, MemoryAlloc: 4096},
+				JobIndividualStates: []JobIndividualStates{},
 			},
 		},
 		{
