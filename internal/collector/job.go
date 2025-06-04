@@ -9,6 +9,7 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"k8s.io/utils/ptr"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	api "github.com/SlinkyProject/slurm-client/api/v0041"
@@ -143,6 +144,7 @@ func (c *jobCollector) Collect(ch chan<- prometheus.Metric) {
 	ctx := context.TODO()
 	logger := log.FromContext(ctx).WithName("JobCollector")
 
+	logger.Info("JobCollector.Collect called")
 	logger.V(1).Info("collecting metrics")
 
 	metrics, err := c.getJobMetrics(ctx)
@@ -175,9 +177,11 @@ func (c *jobCollector) Collect(ch chan<- prometheus.Metric) {
 	ch <- prometheus.MustNewConstMetric(c.JobTres.MemoryAlloc, prometheus.GaugeValue, float64(metrics.JobTres.MemoryAlloc))
 
 	// Individual Job State Metrics - only emit when state is active (value = 1)
+	logger.V(1).Info("collecting individual job states", "count", len(metrics.JobIndividualStates))
 	for _, jobState := range metrics.JobIndividualStates {
 		jobID := jobState.JobID
 		jobName := jobState.JobName
+		logger.V(2).Info("processing job", "jobID", jobID, "jobName", jobName, "nodes", jobState.Nodes)
 		for _, node := range jobState.Nodes {
 			// Base States
 			if jobState.BootFail == 1 {
@@ -238,28 +242,39 @@ func (c *jobCollector) Collect(ch chan<- prometheus.Metric) {
 }
 
 func (c *jobCollector) getJobMetrics(ctx context.Context) (*JobMetrics, error) {
+	logger := log.FromContext(ctx).WithName("JobCollector")
+	logger.Info("getJobMetrics called")
+	
 	jobList := &types.V0041JobInfoList{}
 	if err := c.slurmClient.List(ctx, jobList); err != nil {
+		logger.Error(err, "failed to list jobs")
 		return nil, err
 	}
+	logger.Info("fetched job list", "count", len(jobList.Items))
 	metrics := calculateJobMetrics(jobList)
 	return metrics, nil
 }
 
 func calculateJobMetrics(jobList *types.V0041JobInfoList) *JobMetrics {
+	logger := ctrl.Log.WithName("JobCollector")
 	metrics := &JobMetrics{
 		JobCount:            uint(len(jobList.Items)),
 		JobIndividualStates: make([]JobIndividualStates, 0, len(jobList.Items)),
 	}
+	logger.V(1).Info("processing jobs", "total", len(jobList.Items))
 	for _, job := range jobList.Items {
 		calculateJobState(&metrics.JobStates, job)
 		calculateJobTres(&metrics.JobTres, job)
 		// Calculate individual job states
 		jobStates := calculateJobIndividualStates(job)
 		if jobStates != nil {
+			logger.V(2).Info("added job states", "jobID", jobStates.JobID, "jobName", jobStates.JobName)
 			metrics.JobIndividualStates = append(metrics.JobIndividualStates, *jobStates)
+		} else {
+			logger.V(2).Info("job states nil for job", "jobID", ptr.Deref(job.JobId, 0))
 		}
 	}
+	logger.V(1).Info("calculated metrics", "individualStates", len(metrics.JobIndividualStates))
 	return metrics
 }
 
@@ -410,14 +425,20 @@ type JobIndividualStates struct {
 }
 
 func calculateJobIndividualStates(job types.V0041JobInfo) *JobIndividualStates {
+	logger := ctrl.Log.WithName("JobCollector")
 	states := job.GetStateAsSet()
 	jobID := fmt.Sprintf("%d", ptr.Deref(job.JobId, 0))
 	jobName := ptr.Deref(job.Name, "")
+
+	logger.V(2).Info("calculating individual states", "jobID", jobID, "jobName", jobName, "states", job.JobState)
 
 	// Extract node list from job resources
 	nodeList := ""
 	if job.JobResources != nil && job.JobResources.Nodes != nil {
 		nodeList = ptr.Deref(job.JobResources.Nodes.List, "")
+		logger.V(2).Info("job resources", "jobID", jobID, "nodeList", nodeList)
+	} else {
+		logger.V(2).Info("no job resources or nodes", "jobID", jobID, "hasJobResources", job.JobResources != nil)
 	}
 	nodes := parseNodeList(nodeList)
 

@@ -11,6 +11,7 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"go.uber.org/zap/zapcore"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -57,6 +58,7 @@ func main() {
 	var flags Flags
 	opts := zap.Options{
 		Development: true,
+		Level:       zapcore.Level(-2), // Set to -2 to show V(2) logs
 	}
 	opts.BindFlags(flag.CommandLine)
 	parseFlags(&flags)
