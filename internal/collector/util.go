@@ -74,6 +74,8 @@ func ParseTresGpu(tresStr string) uint {
 	// Split by comma to get individual TRES components
 	parts := strings.Split(tresStr, ",")
 	for _, part := range parts {
+		// Trim whitespace from each part
+		part = strings.TrimSpace(part)
 		// Look for gres/gpu=N pattern
 		if strings.HasPrefix(part, "gres/gpu=") {
 			valueStr := strings.TrimPrefix(part, "gres/gpu=")
