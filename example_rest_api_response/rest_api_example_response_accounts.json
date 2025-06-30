@@ -1,0 +1,142 @@
+{
+  "accounts": [
+    {
+      "associations": [
+      ],
+      "coordinators": [
+      ],
+      "description": "ad",
+      "name": "ad",
+      "organization": "ifm",
+      "flags": [
+      ]
+    },
+    {
+      "associations": [
+      ],
+      "coordinators": [
+      ],
+      "description": "admin",
+      "name": "admin",
+      "organization": "admin",
+      "flags": [
+      ]
+    },
+    {
+      "associations": [
+      ],
+      "coordinators": [
+      ],
+      "description": "hao",
+      "name": "hao",
+      "organization": "ifm",
+      "flags": [
+      ]
+    },
+    {
+      "associations": [
+      ],
+      "coordinators": [
+      ],
+      "description": "ifm",
+      "name": "ifm",
+      "organization": "mbzuai",
+      "flags": [
+      ]
+    },
+    {
+      "associations": [
+      ],
+      "coordinators": [
+      ],
+      "description": "iq",
+      "name": "iq",
+      "organization": "ifm",
+      "flags": [
+      ]
+    },
+    {
+      "associations": [
+      ],
+      "coordinators": [
+      ],
+      "description": "k2m",
+      "name": "k2m",
+      "organization": "ifm",
+      "flags": [
+      ]
+    },
+    {
+      "associations": [
+      ],
+      "coordinators": [
+      ],
+      "description": "mbzuai",
+      "name": "mbzuai",
+      "organization": "mbzuai",
+      "flags": [
+      ]
+    },
+    {
+      "associations": [
+      ],
+      "coordinators": [
+      ],
+      "description": "research",
+      "name": "research",
+      "organization": "ifm",
+      "flags": [
+      ]
+    },
+    {
+      "associations": [
+      ],
+      "coordinators": [
+      ],
+      "description": "default root account",
+      "name": "root",
+      "organization": "root",
+      "flags": [
+      ]
+    },
+    {
+      "associations": [
+      ],
+      "coordinators": [
+      ],
+      "description": "wm",
+      "name": "wm",
+      "organization": "ifm",
+      "flags": [
+      ]
+    }
+  ],
+  "meta": {
+    "plugin": {
+      "type": "openapi\/slurmdbd",
+      "name": "Slurm OpenAPI slurmdbd",
+      "data_parser": "data_parser\/v0.0.41",
+      "accounting_storage": "accounting_storage\/slurmdbd"
+    },
+    "client": {
+      "source": "[localhost]:30356",
+      "user": "",
+      "group": ""
+    },
+    "command": [
+    ],
+    "slurm": {
+      "version": {
+        "major": "24",
+        "micro": "6",
+        "minor": "05"
+      },
+      "release": "24.05.6",
+      "cluster": "mbzuai"
+    }
+  },
+  "errors": [
+  ],
+  "warnings": [
+  ]
+}
