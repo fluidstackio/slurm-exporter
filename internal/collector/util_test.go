@@ -51,6 +51,92 @@ func TestParseGpuGres(t *testing.T) {
 	}
 }
 
+func TestParseTresGpu(t *testing.T) {
+	tests := []struct {
+		name    string
+		tresStr string
+		want    uint
+	}{
+		{
+			name:    "empty string",
+			tresStr: "",
+			want:    0,
+		},
+		{
+			name:    "TRES with 8 GPUs from nodes example",
+			tresStr: "cpu=128,mem=1612647M,billing=128,gres/gpu=8",
+			want:    8,
+		},
+		{
+			name:    "TRES with 8 GPUs from jobs example",
+			tresStr: "cpu=96,mem=1612647M,node=1,billing=96,gres/gpu=8",
+			want:    8,
+		},
+		{
+			name:    "TRES with single GPU",
+			tresStr: "cpu=1,mem=1000M,gres/gpu=1",
+			want:    1,
+		},
+		{
+			name:    "TRES with no GPU",
+			tresStr: "cpu=128,mem=1612647M,billing=128",
+			want:    0,
+		},
+		{
+			name:    "TRES with zero GPUs explicitly",
+			tresStr: "cpu=128,mem=1612647M,gres/gpu=0",
+			want:    0,
+		},
+		{
+			name:    "TRES with double-digit GPUs",
+			tresStr: "cpu=256,mem=3225294M,gres/gpu=16",
+			want:    16,
+		},
+		{
+			name:    "TRES with GPU at beginning",
+			tresStr: "gres/gpu=4,cpu=64,mem=806323M",
+			want:    4,
+		},
+		{
+			name:    "TRES with GPU only",
+			tresStr: "gres/gpu=3",
+			want:    3,
+		},
+		{
+			name:    "TRES with invalid GPU value",
+			tresStr: "cpu=32,mem=403161M,gres/gpu=invalid",
+			want:    0,
+		},
+		{
+			name:    "TRES with negative GPU value",
+			tresStr: "cpu=32,mem=403161M,gres/gpu=-5",
+			want:    0,
+		},
+		{
+			name:    "TRES with partial GPU string",
+			tresStr: "cpu=32,mem=403161M,gres/gpu",
+			want:    0,
+		},
+		{
+			name:    "TRES with other gres types",
+			tresStr: "cpu=32,mem=403161M,gres/nic=2,gres/gpu=5",
+			want:    5,
+		},
+		{
+			name:    "TRES with spaces",
+			tresStr: "cpu=32, mem=403161M, gres/gpu=6",
+			want:    6,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := ParseTresGpu(tt.tresStr); got != tt.want {
+				t.Errorf("ParseTresGpu(%q) = %v, want %v", tt.tresStr, got, tt.want)
+			}
+		})
+	}
+}
+
 func Test_parseNodeList(t *testing.T) {
 	tests := []struct {
 		name     string
