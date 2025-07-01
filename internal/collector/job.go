@@ -71,6 +71,8 @@ func NewJobCollector(slurmClient client.Client) prometheus.Collector {
 			CpusAlloc: prometheus.NewDesc("slurm_jobs_cpus_alloc_total", "Number of Allocated CPUs among jobs", nil, nil),
 			// Memory
 			MemoryAlloc: prometheus.NewDesc("slurm_jobs_memory_alloc_bytes", "Amount of Allocated Memory (MB) among jobs", nil, nil),
+			// GPUs
+			GpusAlloc: prometheus.NewDesc("slurm_jobs_gpus_alloc_total", "Number of Allocated GPUs among jobs", nil, nil),
 		},
 	}
 }
@@ -133,6 +135,8 @@ type jobTresCollector struct {
 	CpusAlloc *prometheus.Desc
 	// Memory
 	MemoryAlloc *prometheus.Desc
+	// GPUs
+	GpusAlloc *prometheus.Desc
 }
 
 func (c *jobCollector) Describe(ch chan<- *prometheus.Desc) {
@@ -173,6 +177,7 @@ func (c *jobCollector) Collect(ch chan<- prometheus.Metric) {
 	// Tres
 	ch <- prometheus.MustNewConstMetric(c.JobTres.CpusAlloc, prometheus.GaugeValue, float64(metrics.JobTres.CpusAlloc))
 	ch <- prometheus.MustNewConstMetric(c.JobTres.MemoryAlloc, prometheus.GaugeValue, float64(metrics.JobTres.MemoryAlloc))
+	ch <- prometheus.MustNewConstMetric(c.JobTres.GpusAlloc, prometheus.GaugeValue, float64(metrics.JobTres.GpusAlloc))
 
 	// Individual Job State Metrics - only emit when state is active (value = 1)
 	for _, jobState := range metrics.JobIndividualStates {
@@ -317,6 +322,11 @@ func calculateJobTres(metrics *JobTres, job types.V0041JobInfo) {
 	res := getJobResourceAlloc(job)
 	metrics.CpusAlloc += res.Cpus
 	metrics.MemoryAlloc += res.Memory
+
+	// Parse GPU allocation from TresAllocStr
+	if job.TresAllocStr != nil {
+		metrics.GpusAlloc += ParseTresGpu(ptr.Deref(job.TresAllocStr, ""))
+	}
 }
 
 type jobResources struct {
@@ -381,6 +391,8 @@ type JobTres struct {
 	CpusAlloc uint
 	// Memory
 	MemoryAlloc uint
+	// GPUs
+	GpusAlloc uint
 }
 
 type JobIndividualStates struct {
