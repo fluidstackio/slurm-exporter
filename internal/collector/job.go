@@ -322,32 +322,33 @@ func calculateJobTres(metrics *JobTres, job types.V0041JobInfo) {
 	res := getJobResourceAlloc(job)
 	metrics.CpusAlloc += res.Cpus
 	metrics.MemoryAlloc += res.Memory
-
-	// Parse GPU allocation from TresAllocStr
-	if job.TresAllocStr != nil {
-		metrics.GpusAlloc += ParseTresGpu(ptr.Deref(job.TresAllocStr, ""))
-	}
+	metrics.GpusAlloc += res.Gpus
 }
 
+// jobResources represents the allocated resources for a single job
 type jobResources struct {
 	Cpus   uint
 	Memory uint
+	Gpus   uint
 }
 
 func getJobResourceAlloc(job types.V0041JobInfo) jobResources {
 	var res jobResources
 	jobRes := ptr.Deref(job.JobResources, api.V0041JobRes{})
-	if jobRes.Nodes == nil {
-		return res
+	if jobRes.Nodes != nil {
+		jobResNode := ptr.Deref(jobRes.Nodes.Allocation, []api.V0041JobResNode{})
+		for _, resNode := range jobResNode {
+			if resNode.Cpus != nil {
+				res.Cpus += uint(ptr.Deref(resNode.Cpus.Count, 0))
+			}
+			if resNode.Memory != nil {
+				res.Memory += uint(ptr.Deref(resNode.Memory.Allocated, 0))
+			}
+		}
 	}
-	jobResNode := ptr.Deref(jobRes.Nodes.Allocation, []api.V0041JobResNode{})
-	for _, resNode := range jobResNode {
-		if resNode.Cpus != nil {
-			res.Cpus += uint(ptr.Deref(resNode.Cpus.Count, 0))
-		}
-		if resNode.Memory != nil {
-			res.Memory += uint(ptr.Deref(resNode.Memory.Allocated, 0))
-		}
+	// Parse GPU allocation from TresAllocStr
+	if job.TresAllocStr != nil {
+		res.Gpus = ParseTresGpu(ptr.Deref(job.TresAllocStr, ""))
 	}
 	return res
 }
@@ -385,6 +386,7 @@ type JobStates struct {
 	Hold uint
 }
 
+// JobTres holds the total allocated resources across all jobs in the cluster
 type JobTres struct {
 	total uint
 	// CPUs

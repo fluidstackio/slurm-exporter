@@ -44,6 +44,7 @@ func Test_getJobResourceAlloc(t *testing.T) {
 			want: jobResources{
 				Cpus:   8,
 				Memory: 1024,
+				Gpus:   2,
 			},
 		},
 		{
@@ -54,6 +55,18 @@ func Test_getJobResourceAlloc(t *testing.T) {
 			want: jobResources{
 				Cpus:   12,
 				Memory: 3072,
+				Gpus:   4,
+			},
+		},
+		{
+			name: "job with GPU only in TRES",
+			args: args{
+				job: types.V0041JobInfo{V0041JobInfo: api.V0041JobInfo{
+					TresAllocStr: ptr.To("cpu=16,mem=8192M,node=1,billing=16,gres/gpu=8"),
+				}},
+			},
+			want: jobResources{
+				Gpus: 8,
 			},
 		},
 	}
@@ -61,6 +74,87 @@ func Test_getJobResourceAlloc(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := getJobResourceAlloc(tt.args.job); !apiequality.Semantic.DeepEqual(got, tt.want) {
 				t.Errorf("getJobResourceAlloc() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_calculateJobTres(t *testing.T) {
+	type args struct {
+		job types.V0041JobInfo
+	}
+	tests := []struct {
+		name string
+		args args
+		want *JobTres
+	}{
+		{
+			name: "empty",
+			args: args{
+				job: types.V0041JobInfo{},
+			},
+			want: &JobTres{},
+		},
+		{
+			name: "job with resources",
+			args: args{
+				job: types.V0041JobInfo{V0041JobInfo: api.V0041JobInfo{
+					JobResources: &api.V0041JobRes{
+						Nodes: &struct {
+							Allocation *api.V0041JobResNodes             "json:\"allocation,omitempty\""
+							Count      *int32                            "json:\"count,omitempty\""
+							List       *string                           "json:\"list,omitempty\""
+							SelectType *[]api.V0041JobResNodesSelectType "json:\"select_type,omitempty\""
+							Whole      *bool                             "json:\"whole,omitempty\""
+						}{
+							Allocation: &api.V0041JobResNodes{
+								{
+									Cpus: &struct {
+										Count *int32 "json:\"count,omitempty\""
+										Used  *int32 "json:\"used,omitempty\""
+									}{
+										Count: ptr.To[int32](16),
+									},
+									Memory: &struct {
+										Allocated *int64 "json:\"allocated,omitempty\""
+										Used      *int64 "json:\"used,omitempty\""
+									}{
+										Allocated: ptr.To[int64](2048),
+									},
+								},
+							},
+						},
+					},
+					TresAllocStr: ptr.To("cpu=16,mem=2048M,node=1,billing=16,gres/gpu=4"),
+				}},
+			},
+			want: &JobTres{
+				CpusAlloc:   16,
+				MemoryAlloc: 2048,
+				GpusAlloc:   4,
+			},
+		},
+		{
+			name: "job with GPU only",
+			args: args{
+				job: types.V0041JobInfo{V0041JobInfo: api.V0041JobInfo{
+					TresAllocStr: ptr.To("gres/gpu=8"),
+				}},
+			},
+			want: &JobTres{
+				GpusAlloc: 8,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			metrics := &JobTres{}
+			calculateJobTres(metrics, tt.args.job)
+			opts := []cmp.Option{
+				cmpopts.IgnoreUnexported(JobTres{}),
+			}
+			if diff := cmp.Diff(tt.want, metrics, opts...); diff != "" {
+				t.Errorf("calculateJobTres() = (-want,+got):\n%s", diff)
 			}
 		})
 	}
@@ -309,7 +403,7 @@ func TestJobCollector_getJobMetrics(t *testing.T) {
 			want: &JobMetrics{
 				JobCount:  4,
 				JobStates: JobStates{Pending: 2, Running: 2, Hold: 1},
-				JobTres:   JobTres{CpusAlloc: 20, MemoryAlloc: 4096},
+				JobTres:   JobTres{CpusAlloc: 20, MemoryAlloc: 4096, GpusAlloc: 6},
 				JobIndividualStates: []JobIndividualStates{
 					{JobID: "0", JobName: "test_job_0", Nodes: []string{"node1"}, Running: 1},
 					{JobID: "1", JobName: "test_job_1", Nodes: []string{""}, Pending: 1, Hold: 1},

@@ -189,9 +189,10 @@ var (
 				},
 			},
 		},
-		UserId:   ptr.To[int32](0),
-		UserName: ptr.To("root"),
-		Account:  ptr.To("root"),
+		UserId:       ptr.To[int32](0),
+		UserName:     ptr.To("root"),
+		Account:      ptr.To("root"),
+		TresAllocStr: ptr.To("cpu=8,mem=1024M,node=1,billing=8,gres/gpu=2"),
 	}}
 	job1 = &types.V0041JobInfo{V0041JobInfo: api.V0041JobInfo{
 		JobId:     ptr.To[int32](1),
@@ -252,8 +253,9 @@ var (
 				},
 			},
 		},
-		UserId:  ptr.To[int32](1000),
-		Account: ptr.To("root"),
+		UserId:       ptr.To[int32](1000),
+		Account:      ptr.To("root"),
+		TresAllocStr: ptr.To("cpu=12,mem=3072M,node=2,billing=12,gres/gpu=4"),
 	}}
 	job3 = &types.V0041JobInfo{V0041JobInfo: api.V0041JobInfo{
 		JobId:     ptr.To[int32](3),

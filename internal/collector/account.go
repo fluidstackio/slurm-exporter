@@ -47,6 +47,8 @@ func NewAccountCollector(slurmClient client.Client) prometheus.Collector {
 			CpusAlloc: prometheus.NewDesc("slurm_account_jobs_cpus_alloc_total", "Number of Allocated CPUs among account jobs", accountLabels, nil),
 			// Memory
 			MemoryAlloc: prometheus.NewDesc("slurm_account_jobs_memory_alloc_bytes", "Amount of Allocated Memory (MB) among account jobs", accountLabels, nil),
+			// GPUs
+			GpusAlloc: prometheus.NewDesc("slurm_account_jobs_gpus_alloc_total", "Number of Allocated GPUs among account jobs", accountLabels, nil),
 		},
 	}
 }
@@ -97,6 +99,7 @@ func (c *accountCollector) Collect(ch chan<- prometheus.Metric) {
 		// Tres
 		ch <- prometheus.MustNewConstMetric(c.JobTres.CpusAlloc, prometheus.GaugeValue, float64(data.JobTres.CpusAlloc), account)
 		ch <- prometheus.MustNewConstMetric(c.JobTres.MemoryAlloc, prometheus.GaugeValue, float64(data.JobTres.MemoryAlloc), account)
+		ch <- prometheus.MustNewConstMetric(c.JobTres.GpusAlloc, prometheus.GaugeValue, float64(data.JobTres.GpusAlloc), account)
 	}
 }
 

@@ -145,6 +145,7 @@ func TestPartitionCollector_getPartitionMetrics(t *testing.T) {
 							JobTres: JobTres{
 								CpusAlloc:   8,
 								MemoryAlloc: 1024,
+								GpusAlloc:   2,
 							},
 						},
 						PendingNodeCount: 0,
@@ -160,6 +161,7 @@ func TestPartitionCollector_getPartitionMetrics(t *testing.T) {
 							JobTres: JobTres{
 								CpusAlloc:   12,
 								MemoryAlloc: 3072,
+								GpusAlloc:   4,
 							},
 						},
 						PendingNodeCount: 2,

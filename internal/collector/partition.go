@@ -49,6 +49,8 @@ func NewPartitionCollector(slurmClient client.Client) prometheus.Collector {
 			CpusAlloc: prometheus.NewDesc("slurm_partition_jobs_cpus_alloc_total", "Number of Allocated CPUs among jobs in the partition", partitionLabels, nil),
 			// Memory
 			MemoryAlloc: prometheus.NewDesc("slurm_partition_jobs_memory_alloc_bytes", "Amount of Allocated Memory (MB) among jobs in the partition", partitionLabels, nil),
+			// GPUs
+			GpusAlloc: prometheus.NewDesc("slurm_partition_jobs_gpus_alloc_total", "Number of Allocated GPUs among jobs in the partition", partitionLabels, nil),
 		},
 		PendingNodeCount: prometheus.NewDesc("slurm_partition_jobs_pending_maxnodecount_total", "Largest number of nodes required among pending jobs in the partition", partitionLabels, nil),
 		NodeCount:        prometheus.NewDesc("slurm_partition_nodes_total", "Total number of slurm nodes", partitionLabels, nil),
@@ -141,6 +143,7 @@ func (c *partitionCollector) Collect(ch chan<- prometheus.Metric) {
 		// Tres
 		ch <- prometheus.MustNewConstMetric(c.JobTres.CpusAlloc, prometheus.GaugeValue, float64(data.JobTres.CpusAlloc), partition)
 		ch <- prometheus.MustNewConstMetric(c.JobTres.MemoryAlloc, prometheus.GaugeValue, float64(data.JobTres.MemoryAlloc), partition)
+		ch <- prometheus.MustNewConstMetric(c.JobTres.GpusAlloc, prometheus.GaugeValue, float64(data.JobTres.GpusAlloc), partition)
 		// Other
 		ch <- prometheus.MustNewConstMetric(c.PendingNodeCount, prometheus.GaugeValue, float64(data.PendingNodeCount), partition)
 	}

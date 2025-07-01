@@ -54,12 +54,12 @@ func TestUserCollector_getUserMetrics(t *testing.T) {
 					{UserId: "0", UserName: "root"}: {
 						JobCount:  2,
 						JobStates: JobStates{Pending: 1, Running: 1, Hold: 1},
-						JobTres:   JobTres{CpusAlloc: 8, MemoryAlloc: 1024},
+						JobTres:   JobTres{CpusAlloc: 8, MemoryAlloc: 1024, GpusAlloc: 2},
 					},
 					{UserId: "1000"}: {
 						JobCount:  2,
 						JobStates: JobStates{Pending: 1, Running: 1},
-						JobTres:   JobTres{CpusAlloc: 12, MemoryAlloc: 3072},
+						JobTres:   JobTres{CpusAlloc: 12, MemoryAlloc: 3072, GpusAlloc: 4},
 					},
 				},
 			},
