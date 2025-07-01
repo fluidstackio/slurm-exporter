@@ -58,7 +58,7 @@ func TestAccountCollector_getAccountMetrics(t *testing.T) {
 					"root": {
 						JobCount:  2,
 						JobStates: JobStates{Running: 2},
-						JobTres:   JobTres{CpusAlloc: 20, MemoryAlloc: 4096},
+						JobTres:   JobTres{CpusAlloc: 20, MemoryAlloc: 4096, GpusAlloc: 6},
 					},
 				},
 			},
