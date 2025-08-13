@@ -47,7 +47,7 @@ func NewUserCollector(slurmClient client.Client) prometheus.Collector {
 			// CPUs
 			CpusAlloc: prometheus.NewDesc("slurm_user_jobs_cpus_alloc_total", "Number of Allocated CPUs among user jobs", userLabels, nil),
 			// Memory
-			MemoryAlloc: prometheus.NewDesc("slurm_user_jobs_memory_alloc_bytes", "Amount of Allocated Memory (MB) among user jobs", userLabels, nil),
+			MemoryAlloc: prometheus.NewDesc("slurm_user_jobs_memory_alloc_total", "Amount of Allocated Memory (bytes) among user jobs", userLabels, nil),
 			// GPUs
 			GpusAlloc: prometheus.NewDesc("slurm_user_jobs_gpus_alloc_total", "Number of Allocated GPUs among user jobs", userLabels, nil),
 		},

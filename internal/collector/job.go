@@ -70,7 +70,7 @@ func NewJobCollector(slurmClient client.Client) prometheus.Collector {
 			// CPUs
 			CpusAlloc: prometheus.NewDesc("slurm_jobs_cpus_alloc_total", "Number of Allocated CPUs among jobs", nil, nil),
 			// Memory
-			MemoryAlloc: prometheus.NewDesc("slurm_jobs_memory_alloc_bytes", "Amount of Allocated Memory (MB) among jobs", nil, nil),
+			MemoryAlloc: prometheus.NewDesc("slurm_jobs_memory_alloc_total", "Amount of Allocated Memory among jobs", nil, nil),
 			// GPUs
 			GpusAlloc: prometheus.NewDesc("slurm_jobs_gpus_alloc_total", "Number of Allocated GPUs among jobs", nil, nil),
 		},
@@ -342,7 +342,8 @@ func getJobResourceAlloc(job types.V0041JobInfo) jobResources {
 				res.Cpus += uint(ptr.Deref(resNode.Cpus.Count, 0))
 			}
 			if resNode.Memory != nil {
-				res.Memory += uint(ptr.Deref(resNode.Memory.Allocated, 0))
+				// Convert from MB to bytes
+				res.Memory += uint(ptr.Deref(resNode.Memory.Allocated, 0)) * 1024 * 1024
 			}
 		}
 	}

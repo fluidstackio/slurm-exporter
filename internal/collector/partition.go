@@ -48,7 +48,7 @@ func NewPartitionCollector(slurmClient client.Client) prometheus.Collector {
 			// CPUs
 			CpusAlloc: prometheus.NewDesc("slurm_partition_jobs_cpus_alloc_total", "Number of Allocated CPUs among jobs in the partition", partitionLabels, nil),
 			// Memory
-			MemoryAlloc: prometheus.NewDesc("slurm_partition_jobs_memory_alloc_bytes", "Amount of Allocated Memory (MB) among jobs in the partition", partitionLabels, nil),
+			MemoryAlloc: prometheus.NewDesc("slurm_partition_jobs_memory_alloc_total", "Amount of Allocated Memory (bytes) among jobs in the partition", partitionLabels, nil),
 			// GPUs
 			GpusAlloc: prometheus.NewDesc("slurm_partition_jobs_gpus_alloc_total", "Number of Allocated GPUs among jobs in the partition", partitionLabels, nil),
 		},
@@ -77,13 +77,13 @@ func NewPartitionCollector(slurmClient client.Client) prometheus.Collector {
 			// CPUs
 			CpusTotal:     prometheus.NewDesc("slurm_partition_nodes_cpus_total", "Total number of CPUs on the node", partitionLabels, nil),
 			CpusEffective: prometheus.NewDesc("slurm_partition_nodes_cpus_effective_total", "Total number of effective CPUs on the node, excludes CoreSpec", partitionLabels, nil),
-			CpusAlloc:     prometheus.NewDesc("slurm_partition_nodes_cpus_alloc_total", "Number of Allocated CPUs on the node", partitionLabels, nil),
-			CpusIdle:      prometheus.NewDesc("slurm_partition_nodes_cpus_idle_total", "Number of Idle CPUs on the node", partitionLabels, nil),
+			CpusAlloc:     prometheus.NewDesc("slurm_partition_nodes_cpus_alloc_total", "Total number of Allocated CPUs on the node", partitionLabels, nil),
+			CpusIdle:      prometheus.NewDesc("slurm_partition_nodes_cpus_idle_total", "Total number of Idle CPUs on the node", partitionLabels, nil),
 			// Memory
-			MemoryTotal:     prometheus.NewDesc("slurm_partition_nodes_memory_bytes", "Total amount of Memory (MB) on the node", partitionLabels, nil),
-			MemoryEffective: prometheus.NewDesc("slurm_partition_nodes_memory_effective_bytes", "Total amount of effective Memory (MB) on the node, excludes MemSpec", partitionLabels, nil),
-			MemoryAlloc:     prometheus.NewDesc("slurm_partition_nodes_memory_alloc_bytes", "Amount of Allocated Memory (MB) on the node", partitionLabels, nil),
-			MemoryFree:      prometheus.NewDesc("slurm_partition_nodes_memory_free_bytes", "Amount of Free Memory (MB) on the node", partitionLabels, nil),
+			MemoryTotal:     prometheus.NewDesc("slurm_partition_nodes_memory_total", "Total amount of Memory (bytes) on the node", partitionLabels, nil),
+			MemoryEffective: prometheus.NewDesc("slurm_partition_nodes_memory_effective_total", "Total amount of effective Memory (bytes) on the node, excludes MemSpec", partitionLabels, nil),
+			MemoryAlloc:     prometheus.NewDesc("slurm_partition_nodes_memory_alloc_total", "Total amount of Allocated Memory (bytes) on the node", partitionLabels, nil),
+			MemoryFree:      prometheus.NewDesc("slurm_partition_nodes_memory_free_total", "Total amount of Free Memory (bytes) on the node", partitionLabels, nil),
 			// GPUs
 			GpusTotal: prometheus.NewDesc("slurm_partition_nodes_gpus_total", "Total number of GPUs in the partition", partitionLabels, nil),
 		},
