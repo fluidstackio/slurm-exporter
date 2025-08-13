@@ -342,7 +342,8 @@ func getJobResourceAlloc(job types.V0041JobInfo) jobResources {
 				res.Cpus += uint(ptr.Deref(resNode.Cpus.Count, 0))
 			}
 			if resNode.Memory != nil {
-				res.Memory += uint(ptr.Deref(resNode.Memory.Allocated, 0))
+				// Convert from MB to bytes
+				res.Memory += uint(ptr.Deref(resNode.Memory.Allocated, 0)) * 1024 * 1024
 			}
 		}
 	}

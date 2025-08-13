@@ -409,11 +409,11 @@ func calculateNodeTres(metrics *NodeTres, node types.V0041Node) {
 	metrics.CpusEffective += uint(ptr.Deref(node.EffectiveCpus, 0))
 	metrics.CpusAlloc += uint(ptr.Deref(node.AllocCpus, 0))
 	metrics.CpusIdle += uint(ptr.Deref(node.AllocIdleCpus, 0))
-	// Memory
-	metrics.MemoryTotal += uint(ptr.Deref(node.RealMemory, 0))
-	metrics.MemoryEffective += uint(ptr.Deref(node.RealMemory, 0) - ptr.Deref(node.SpecializedMemory, 0))
-	metrics.MemoryAlloc += uint(ptr.Deref(node.AllocMemory, 0))
-	metrics.MemoryFree += uint(ParseUint64NoVal(node.FreeMem))
+	// Memory (convert from MB to bytes)
+	metrics.MemoryTotal += uint(ptr.Deref(node.RealMemory, 0)) * 1024 * 1024
+	metrics.MemoryEffective += uint(ptr.Deref(node.RealMemory, 0) - ptr.Deref(node.SpecializedMemory, 0)) * 1024 * 1024
+	metrics.MemoryAlloc += uint(ptr.Deref(node.AllocMemory, 0)) * 1024 * 1024
+	metrics.MemoryFree += uint(ParseUint64NoVal(node.FreeMem)) * 1024 * 1024
 	// GPUs
 	metrics.GpusTotal += uint(ParseNodeGresGpu(ptr.Deref(node.Gres, "")))
 }

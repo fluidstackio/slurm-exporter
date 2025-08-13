@@ -43,7 +43,7 @@ func Test_getJobResourceAlloc(t *testing.T) {
 			},
 			want: jobResources{
 				Cpus:   8,
-				Memory: 1024,
+				Memory: 1024 * 1024 * 1024,
 				Gpus:   2,
 			},
 		},
@@ -54,7 +54,7 @@ func Test_getJobResourceAlloc(t *testing.T) {
 			},
 			want: jobResources{
 				Cpus:   12,
-				Memory: 3072,
+				Memory: 3072 * 1024 * 1024,
 				Gpus:   4,
 			},
 		},
@@ -130,7 +130,7 @@ func Test_calculateJobTres(t *testing.T) {
 			},
 			want: &JobTres{
 				CpusAlloc:   16,
-				MemoryAlloc: 2048,
+				MemoryAlloc: 2048 * 1024 * 1024,
 				GpusAlloc:   4,
 			},
 		},
@@ -403,7 +403,7 @@ func TestJobCollector_getJobMetrics(t *testing.T) {
 			want: &JobMetrics{
 				JobCount:  4,
 				JobStates: JobStates{Pending: 2, Running: 2, Hold: 1},
-				JobTres:   JobTres{CpusAlloc: 20, MemoryAlloc: 4096, GpusAlloc: 6},
+				JobTres:   JobTres{CpusAlloc: 20, MemoryAlloc: 4096 * 1024 * 1024, GpusAlloc: 6},
 				JobIndividualStates: []JobIndividualStates{
 					{JobID: "0", JobName: "test_job_0", Nodes: []string{"node1"}, Running: 1},
 					{JobID: "1", JobName: "test_job_1", Nodes: []string{""}, Pending: 1, Hold: 1},
