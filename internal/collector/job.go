@@ -68,11 +68,11 @@ func NewJobCollector(slurmClient client.Client) prometheus.Collector {
 		// Tres
 		JobTres: jobTresCollector{
 			// CPUs
-			CpusAlloc: prometheus.NewDesc("slurm_jobs_cpus_alloc_total", "Number of Allocated CPUs among jobs", nil, nil),
+			CpusAlloc: prometheus.NewDesc("slurm_job_cpus_alloc_total", "Number of allocated CPUs for the job", jobLabels, nil),
 			// Memory
-			MemoryAlloc: prometheus.NewDesc("slurm_jobs_memory_alloc_total", "Amount of Allocated Memory among jobs", nil, nil),
+			MemoryAlloc: prometheus.NewDesc("slurm_job_memory_alloc_total", "Amount of allocated memory for the job in bytes", jobLabels, nil),
 			// GPUs
-			GpusAlloc: prometheus.NewDesc("slurm_jobs_gpus_alloc_total", "Number of Allocated GPUs among jobs", nil, nil),
+			GpusAlloc: prometheus.NewDesc("slurm_job_gpus_alloc_total", "Number of allocated GPUs for the job", jobLabels, nil),
 		},
 	}
 }
@@ -80,9 +80,17 @@ func NewJobCollector(slurmClient client.Client) prometheus.Collector {
 type jobCollector struct {
 	slurmClient client.Client
 
+	// -------------------------------------------------------------------------
+	// Collective Metrics
+	// -------------------------------------------------------------------------
 	JobCount  *prometheus.Desc
 	JobStates jobStatesCollector
-	// Individual Job State Metrics
+
+	// -------------------------------------------------------------------------
+	// Individual Metrics
+	// -------------------------------------------------------------------------
+
+	// Individual Job State Metrics --------------------------------------------
 	// Base States
 	JobStateBootFail    *prometheus.Desc
 	JobStateCancelled   *prometheus.Desc
@@ -103,7 +111,8 @@ type jobCollector struct {
 	JobStateStageOut    *prometheus.Desc
 	// Other States
 	JobStateHold *prometheus.Desc
-	// Tres
+
+	// Individual Job Tres Metrics ---------------------------------------------
 	JobTres jobTresCollector
 }
 
@@ -155,6 +164,10 @@ func (c *jobCollector) Collect(ch chan<- prometheus.Metric) {
 		return
 	}
 
+	// -------------------------------------------------------------------------
+	// Collective Metrics
+	// -------------------------------------------------------------------------
+	// Counts
 	ch <- prometheus.MustNewConstMetric(c.JobCount, prometheus.GaugeValue, float64(metrics.JobCount))
 	// States
 	ch <- prometheus.MustNewConstMetric(c.JobStates.BootFail, prometheus.GaugeValue, float64(metrics.JobStates.BootFail))
@@ -174,16 +187,18 @@ func (c *jobCollector) Collect(ch chan<- prometheus.Metric) {
 	ch <- prometheus.MustNewConstMetric(c.JobStates.PowerUpNode, prometheus.GaugeValue, float64(metrics.JobStates.PowerUpNode))
 	ch <- prometheus.MustNewConstMetric(c.JobStates.StageOut, prometheus.GaugeValue, float64(metrics.JobStates.StageOut))
 	ch <- prometheus.MustNewConstMetric(c.JobStates.Hold, prometheus.GaugeValue, float64(metrics.JobStates.Hold))
-	// Tres
-	ch <- prometheus.MustNewConstMetric(c.JobTres.CpusAlloc, prometheus.GaugeValue, float64(metrics.JobTres.CpusAlloc))
-	ch <- prometheus.MustNewConstMetric(c.JobTres.MemoryAlloc, prometheus.GaugeValue, float64(metrics.JobTres.MemoryAlloc))
-	ch <- prometheus.MustNewConstMetric(c.JobTres.GpusAlloc, prometheus.GaugeValue, float64(metrics.JobTres.GpusAlloc))
 
-	// Individual Job State Metrics - only emit when state is active (value = 1)
+	// -------------------------------------------------------------------------
+	// Individual Metrics
+	// -------------------------------------------------------------------------
+
 	for _, jobState := range metrics.JobIndividualStates {
 		jobID := jobState.JobID
 		jobName := jobState.JobName
 		for _, node := range jobState.Nodes {
+			// Individual Job State Metrics ------------------------------------
+			// Only emit when state is active (value = 1) for cardinality reasons.
+
 			// Base States
 			if jobState.BootFail == 1 {
 				ch <- prometheus.MustNewConstMetric(c.JobStateBootFail, prometheus.GaugeValue, 1, jobID, jobName, node)
@@ -238,6 +253,11 @@ func (c *jobCollector) Collect(ch chan<- prometheus.Metric) {
 			if jobState.Hold == 1 {
 				ch <- prometheus.MustNewConstMetric(c.JobStateHold, prometheus.GaugeValue, 1, jobID, jobName, node)
 			}
+
+			// Individual Job Tres Metrics -------------------------------------
+			ch <- prometheus.MustNewConstMetric(c.JobTres.CpusAlloc, prometheus.GaugeValue, float64(jobState.CpusAlloc), jobID, jobName, node)
+			ch <- prometheus.MustNewConstMetric(c.JobTres.MemoryAlloc, prometheus.GaugeValue, float64(jobState.MemoryAlloc), jobID, jobName, node)
+			ch <- prometheus.MustNewConstMetric(c.JobTres.GpusAlloc, prometheus.GaugeValue, float64(jobState.GpusAlloc), jobID, jobName, node)
 		}
 	}
 }
@@ -259,13 +279,21 @@ func calculateJobMetrics(jobList *types.V0041JobInfoList) *JobMetrics {
 	for _, job := range jobList.Items {
 		calculateJobState(&metrics.JobStates, job)
 		calculateJobTres(&metrics.JobTres, job)
-		// Calculate individual job states
+		// Calculate individual job states and TRES
 		jobStates := calculateJobIndividualStates(job)
 		if jobStates != nil {
 			metrics.JobIndividualStates = append(metrics.JobIndividualStates, *jobStates)
 		}
 	}
 	return metrics
+}
+
+func calculateJobTres(metrics *JobTres, job types.V0041JobInfo) {
+	metrics.total++
+	res := getJobResourceAlloc(job)
+	metrics.CpusAlloc += res.Cpus
+	metrics.MemoryAlloc += res.Memory
+	metrics.GpusAlloc += res.Gpus
 }
 
 func calculateJobState(metrics *JobStates, job types.V0041JobInfo) {
@@ -315,14 +343,6 @@ func calculateJobState(metrics *JobStates, job types.V0041JobInfo) {
 	if isHold := ptr.Deref(job.Hold, false); isHold {
 		metrics.Hold++
 	}
-}
-
-func calculateJobTres(metrics *JobTres, job types.V0041JobInfo) {
-	metrics.total++
-	res := getJobResourceAlloc(job)
-	metrics.CpusAlloc += res.Cpus
-	metrics.MemoryAlloc += res.Memory
-	metrics.GpusAlloc += res.Gpus
 }
 
 // jobResources represents the allocated resources for a single job
@@ -422,6 +442,10 @@ type JobIndividualStates struct {
 	StageOut    int
 	// Other States
 	Hold int
+	// TRES
+	CpusAlloc   uint
+	MemoryAlloc uint
+	GpusAlloc   uint
 }
 
 func calculateJobIndividualStates(job types.V0041JobInfo) *JobIndividualStates {
@@ -501,6 +525,12 @@ func calculateJobIndividualStates(job types.V0041JobInfo) *JobIndividualStates {
 	if isHold := ptr.Deref(job.Hold, false); isHold {
 		jobStates.Hold = 1
 	}
+
+	// Get TRES allocations for this job
+	res := getJobResourceAlloc(job)
+	jobStates.CpusAlloc = res.Cpus
+	jobStates.MemoryAlloc = res.Memory
+	jobStates.GpusAlloc = res.Gpus
 
 	return jobStates
 }
