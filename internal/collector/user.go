@@ -43,14 +43,6 @@ func NewUserCollector(slurmClient client.Client) prometheus.Collector {
 			// Other States
 			Hold: prometheus.NewDesc("slurm_user_jobs_hold_total", "Number of user jobs with Hold flag", userLabels, nil),
 		},
-		JobTres: jobTresCollector{
-			// CPUs
-			CpusAlloc: prometheus.NewDesc("slurm_user_jobs_cpus_alloc_total", "Number of Allocated CPUs among user jobs", userLabels, nil),
-			// Memory
-			MemoryAlloc: prometheus.NewDesc("slurm_user_jobs_memory_alloc_total", "Amount of Allocated Memory (bytes) among user jobs", userLabels, nil),
-			// GPUs
-			GpusAlloc: prometheus.NewDesc("slurm_user_jobs_gpus_alloc_total", "Number of Allocated GPUs among user jobs", userLabels, nil),
-		},
 	}
 }
 
@@ -59,7 +51,6 @@ type userCollector struct {
 
 	JobCount  *prometheus.Desc
 	JobStates jobStatesCollector
-	JobTres   jobTresCollector
 }
 
 func (c *userCollector) Describe(ch chan<- *prometheus.Desc) {
@@ -97,10 +88,6 @@ func (c *userCollector) Collect(ch chan<- prometheus.Metric) {
 		ch <- prometheus.MustNewConstMetric(c.JobStates.Configuring, prometheus.GaugeValue, float64(data.JobStates.Configuring), userCtx.UserId, userCtx.UserName)
 		ch <- prometheus.MustNewConstMetric(c.JobStates.PowerUpNode, prometheus.GaugeValue, float64(data.JobStates.PowerUpNode), userCtx.UserId, userCtx.UserName)
 		ch <- prometheus.MustNewConstMetric(c.JobStates.Hold, prometheus.GaugeValue, float64(data.JobStates.Hold), userCtx.UserId, userCtx.UserName)
-		// Tres
-		ch <- prometheus.MustNewConstMetric(c.JobTres.CpusAlloc, prometheus.GaugeValue, float64(data.JobTres.CpusAlloc), userCtx.UserId, userCtx.UserName)
-		ch <- prometheus.MustNewConstMetric(c.JobTres.MemoryAlloc, prometheus.GaugeValue, float64(data.JobTres.MemoryAlloc), userCtx.UserId, userCtx.UserName)
-		ch <- prometheus.MustNewConstMetric(c.JobTres.GpusAlloc, prometheus.GaugeValue, float64(data.JobTres.GpusAlloc), userCtx.UserId, userCtx.UserName)
 	}
 }
 
@@ -132,7 +119,6 @@ func calculateUserMetrics(jobList *types.V0041JobInfoList) *UserMetrics {
 		}
 		metrics.JobMetricsPer[key].JobCount++
 		calculateJobState(&metrics.JobMetricsPer[key].JobStates, job)
-		calculateJobTres(&metrics.JobMetricsPer[key].JobTres, job)
 	}
 	return metrics
 }

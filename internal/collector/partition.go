@@ -44,14 +44,6 @@ func NewPartitionCollector(slurmClient client.Client) prometheus.Collector {
 			// Other States
 			Hold: prometheus.NewDesc("slurm_partition_jobs_hold_total", "Number of jobs with Hold flag in the partition", partitionLabels, nil),
 		},
-		JobTres: jobTresCollector{
-			// CPUs
-			CpusAlloc: prometheus.NewDesc("slurm_partition_jobs_cpus_alloc_total", "Number of Allocated CPUs among jobs in the partition", partitionLabels, nil),
-			// Memory
-			MemoryAlloc: prometheus.NewDesc("slurm_partition_jobs_memory_alloc_total", "Amount of Allocated Memory (bytes) among jobs in the partition", partitionLabels, nil),
-			// GPUs
-			GpusAlloc: prometheus.NewDesc("slurm_partition_jobs_gpus_alloc_total", "Number of Allocated GPUs among jobs in the partition", partitionLabels, nil),
-		},
 		PendingNodeCount: prometheus.NewDesc("slurm_partition_jobs_pending_maxnodecount_total", "Largest number of nodes required among pending jobs in the partition", partitionLabels, nil),
 		NodeCount:        prometheus.NewDesc("slurm_partition_nodes_total", "Total number of slurm nodes", partitionLabels, nil),
 		NodeStates: nodeStatesCollector{
@@ -95,7 +87,6 @@ type partitionCollector struct {
 
 	JobCount  *prometheus.Desc
 	JobStates jobStatesCollector
-	JobTres   jobTresCollector
 
 	NodeCount  *prometheus.Desc
 	NodeStates nodeStatesCollector
@@ -140,10 +131,6 @@ func (c *partitionCollector) Collect(ch chan<- prometheus.Metric) {
 		ch <- prometheus.MustNewConstMetric(c.JobStates.PowerUpNode, prometheus.GaugeValue, float64(data.JobMetrics.JobStates.PowerUpNode), partition)
 		ch <- prometheus.MustNewConstMetric(c.JobStates.StageOut, prometheus.GaugeValue, float64(data.JobMetrics.JobStates.StageOut), partition)
 		ch <- prometheus.MustNewConstMetric(c.JobStates.Hold, prometheus.GaugeValue, float64(data.JobMetrics.JobStates.Hold), partition)
-		// Tres
-		ch <- prometheus.MustNewConstMetric(c.JobTres.CpusAlloc, prometheus.GaugeValue, float64(data.JobTres.CpusAlloc), partition)
-		ch <- prometheus.MustNewConstMetric(c.JobTres.MemoryAlloc, prometheus.GaugeValue, float64(data.JobTres.MemoryAlloc), partition)
-		ch <- prometheus.MustNewConstMetric(c.JobTres.GpusAlloc, prometheus.GaugeValue, float64(data.JobTres.GpusAlloc), partition)
 		// Other
 		ch <- prometheus.MustNewConstMetric(c.PendingNodeCount, prometheus.GaugeValue, float64(data.PendingNodeCount), partition)
 	}
@@ -230,7 +217,6 @@ func calculatePartitionMetrics(
 			}
 			metrics.JobMetricsPer[key].JobCount++
 			calculateJobState(&metrics.JobMetricsPer[key].JobStates, job)
-			calculateJobTres(&metrics.JobMetricsPer[key].JobTres, job)
 			metrics.JobMetricsPer[key].PendingNodeCount = max(metrics.JobMetricsPer[key].PendingNodeCount, getJobPendingNodeCount(job))
 		}
 	}

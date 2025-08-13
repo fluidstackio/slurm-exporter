@@ -42,14 +42,6 @@ func NewAccountCollector(slurmClient client.Client) prometheus.Collector {
 			// Other States
 			Hold: prometheus.NewDesc("slurm_account_jobs_hold_total", "Number of account jobs with Hold flag", accountLabels, nil),
 		},
-		JobTres: jobTresCollector{
-			// CPUs
-			CpusAlloc: prometheus.NewDesc("slurm_account_jobs_cpus_alloc_total", "Number of Allocated CPUs among account jobs", accountLabels, nil),
-			// Memory
-			MemoryAlloc: prometheus.NewDesc("slurm_account_jobs_memory_alloc_total", "Amount of Allocated Memory (bytes) among account jobs", accountLabels, nil),
-			// GPUs
-			GpusAlloc: prometheus.NewDesc("slurm_account_jobs_gpus_alloc_total", "Number of Allocated GPUs among account jobs", accountLabels, nil),
-		},
 	}
 }
 
@@ -58,7 +50,6 @@ type accountCollector struct {
 
 	JobCount  *prometheus.Desc
 	JobStates jobStatesCollector
-	JobTres   jobTresCollector
 }
 
 func (c *accountCollector) Describe(ch chan<- *prometheus.Desc) {
@@ -96,10 +87,6 @@ func (c *accountCollector) Collect(ch chan<- prometheus.Metric) {
 		ch <- prometheus.MustNewConstMetric(c.JobStates.Configuring, prometheus.GaugeValue, float64(data.JobStates.Configuring), account)
 		ch <- prometheus.MustNewConstMetric(c.JobStates.PowerUpNode, prometheus.GaugeValue, float64(data.JobStates.PowerUpNode), account)
 		ch <- prometheus.MustNewConstMetric(c.JobStates.Hold, prometheus.GaugeValue, float64(data.JobStates.Hold), account)
-		// Tres
-		ch <- prometheus.MustNewConstMetric(c.JobTres.CpusAlloc, prometheus.GaugeValue, float64(data.JobTres.CpusAlloc), account)
-		ch <- prometheus.MustNewConstMetric(c.JobTres.MemoryAlloc, prometheus.GaugeValue, float64(data.JobTres.MemoryAlloc), account)
-		ch <- prometheus.MustNewConstMetric(c.JobTres.GpusAlloc, prometheus.GaugeValue, float64(data.JobTres.GpusAlloc), account)
 	}
 }
 
@@ -123,7 +110,6 @@ func calculateAccountMetrics(jobList *types.V0041JobInfoList) *AccountMetrics {
 		}
 		metrics.JobMetricsPer[key].JobCount++
 		calculateJobState(&metrics.JobMetricsPer[key].JobStates, job)
-		calculateJobTres(&metrics.JobMetricsPer[key].JobTres, job)
 	}
 	return metrics
 }
