@@ -142,11 +142,6 @@ func TestPartitionCollector_getPartitionMetrics(t *testing.T) {
 								Running: 1,
 								Hold:    1,
 							},
-							JobTres: JobTres{
-								CpusAlloc:   8,
-								MemoryAlloc: 1024 * 1024 * 1024,
-								GpusAlloc:   2,
-							},
 						},
 						PendingNodeCount: 0,
 					},
@@ -157,11 +152,6 @@ func TestPartitionCollector_getPartitionMetrics(t *testing.T) {
 								Pending: 2,
 								Running: 1,
 								Hold:    1,
-							},
-							JobTres: JobTres{
-								CpusAlloc:   12,
-								MemoryAlloc: 3072 * 1024 * 1024,
-								GpusAlloc:   4,
 							},
 						},
 						PendingNodeCount: 2,
@@ -194,7 +184,6 @@ func TestPartitionCollector_getPartitionMetrics(t *testing.T) {
 			opts := []cmp.Option{
 				cmpopts.IgnoreUnexported(PartitionMetrics{}),
 				cmpopts.IgnoreFields(JobStates{}, "total"),
-				cmpopts.IgnoreFields(JobTres{}, "total"),
 				cmpopts.IgnoreUnexported(NodeMetrics{}),
 				cmpopts.IgnoreFields(NodeStates{}, "total"),
 				cmpopts.IgnoreFields(NodeTres{}, "total"),

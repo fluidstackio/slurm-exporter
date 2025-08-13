@@ -79,87 +79,6 @@ func Test_getJobResourceAlloc(t *testing.T) {
 	}
 }
 
-func Test_calculateJobTres(t *testing.T) {
-	type args struct {
-		job types.V0041JobInfo
-	}
-	tests := []struct {
-		name string
-		args args
-		want *JobTres
-	}{
-		{
-			name: "empty",
-			args: args{
-				job: types.V0041JobInfo{},
-			},
-			want: &JobTres{},
-		},
-		{
-			name: "job with resources",
-			args: args{
-				job: types.V0041JobInfo{V0041JobInfo: api.V0041JobInfo{
-					JobResources: &api.V0041JobRes{
-						Nodes: &struct {
-							Allocation *api.V0041JobResNodes             "json:\"allocation,omitempty\""
-							Count      *int32                            "json:\"count,omitempty\""
-							List       *string                           "json:\"list,omitempty\""
-							SelectType *[]api.V0041JobResNodesSelectType "json:\"select_type,omitempty\""
-							Whole      *bool                             "json:\"whole,omitempty\""
-						}{
-							Allocation: &api.V0041JobResNodes{
-								{
-									Cpus: &struct {
-										Count *int32 "json:\"count,omitempty\""
-										Used  *int32 "json:\"used,omitempty\""
-									}{
-										Count: ptr.To[int32](16),
-									},
-									Memory: &struct {
-										Allocated *int64 "json:\"allocated,omitempty\""
-										Used      *int64 "json:\"used,omitempty\""
-									}{
-										Allocated: ptr.To[int64](2048),
-									},
-								},
-							},
-						},
-					},
-					TresAllocStr: ptr.To("cpu=16,mem=2048M,node=1,billing=16,gres/gpu=4"),
-				}},
-			},
-			want: &JobTres{
-				CpusAlloc:   16,
-				MemoryAlloc: 2048 * 1024 * 1024,
-				GpusAlloc:   4,
-			},
-		},
-		{
-			name: "job with GPU only",
-			args: args{
-				job: types.V0041JobInfo{V0041JobInfo: api.V0041JobInfo{
-					TresAllocStr: ptr.To("gres/gpu=8"),
-				}},
-			},
-			want: &JobTres{
-				GpusAlloc: 8,
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			metrics := &JobTres{}
-			calculateJobTres(metrics, tt.args.job)
-			opts := []cmp.Option{
-				cmpopts.IgnoreUnexported(JobTres{}),
-			}
-			if diff := cmp.Diff(tt.want, metrics, opts...); diff != "" {
-				t.Errorf("calculateJobTres() = (-want,+got):\n%s", diff)
-			}
-		})
-	}
-}
-
 func Test_calculateJobState(t *testing.T) {
 	type args struct {
 		job types.V0041JobInfo
@@ -403,12 +322,11 @@ func TestJobCollector_getJobMetrics(t *testing.T) {
 			want: &JobMetrics{
 				JobCount:  4,
 				JobStates: JobStates{Pending: 2, Running: 2, Hold: 1},
-				JobTres:   JobTres{CpusAlloc: 20, MemoryAlloc: 4096 * 1024 * 1024, GpusAlloc: 6},
 				JobIndividualStates: []JobIndividualStates{
-					{JobID: "0", JobName: "test_job_0", Nodes: []string{"node1"}, Running: 1, CpusAlloc: 8, MemoryAlloc: 1024 * 1024 * 1024, GpusAlloc: 2},
-					{JobID: "1", JobName: "test_job_1", Nodes: []string{""}, Pending: 1, Hold: 1, CpusAlloc: 0, MemoryAlloc: 0, GpusAlloc: 0},
-					{JobID: "2", JobName: "test_job_2", Nodes: []string{"node2", "node3"}, Running: 1, CpusAlloc: 12, MemoryAlloc: 3072 * 1024 * 1024, GpusAlloc: 4},
-					{JobID: "3", JobName: "test_job_3", Nodes: []string{""}, Pending: 1, CpusAlloc: 0, MemoryAlloc: 0, GpusAlloc: 0},
+					{JobID: "0", JobName: "test_job_0", Nodes: []string{"node1"}, Account: "root", Partition: "blue", UserID: "0", UserName: "root", Running: 1, CpusAlloc: 8, MemoryAlloc: 1024 * 1024 * 1024, GpusAlloc: 2},
+					{JobID: "1", JobName: "test_job_1", Nodes: []string{""}, Account: "", Partition: "blue,green", UserID: "0", UserName: "root", Pending: 1, Hold: 1, CpusAlloc: 0, MemoryAlloc: 0, GpusAlloc: 0},
+					{JobID: "2", JobName: "test_job_2", Nodes: []string{"node2", "node3"}, Account: "root", Partition: "green", UserID: "1000", UserName: "", Running: 1, CpusAlloc: 12, MemoryAlloc: 3072 * 1024 * 1024, GpusAlloc: 4},
+					{JobID: "3", JobName: "test_job_3", Nodes: []string{""}, Account: "", Partition: "green", UserID: "1000", UserName: "", Pending: 1, CpusAlloc: 0, MemoryAlloc: 0, GpusAlloc: 0},
 				},
 			},
 		},
@@ -434,18 +352,17 @@ func TestJobCollector_getJobMetrics(t *testing.T) {
 				t.Errorf("jobCollector.getJobMetrics() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			
+
 			// Sort JobIndividualStates for consistent comparison
 			if got != nil {
 				sort.Slice(got.JobIndividualStates, func(i, j int) bool {
 					return got.JobIndividualStates[i].JobID < got.JobIndividualStates[j].JobID
 				})
 			}
-			
+
 			opts := []cmp.Option{
 				cmpopts.IgnoreUnexported(JobMetrics{}),
 				cmpopts.IgnoreFields(JobStates{}, "total"),
-				cmpopts.IgnoreFields(JobTres{}, "total"),
 			}
 			if diff := cmp.Diff(tt.want, got, opts...); diff != "" {
 				t.Errorf("jobCollector.getJobMetrics() = (-want,+got):\n%s", diff)

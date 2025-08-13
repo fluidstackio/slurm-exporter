@@ -54,12 +54,10 @@ func TestUserCollector_getUserMetrics(t *testing.T) {
 					{UserId: "0", UserName: "root"}: {
 						JobCount:  2,
 						JobStates: JobStates{Pending: 1, Running: 1, Hold: 1},
-						JobTres:   JobTres{CpusAlloc: 8, MemoryAlloc: 1024 * 1024 * 1024, GpusAlloc: 2},
 					},
 					{UserId: "1000"}: {
 						JobCount:  2,
 						JobStates: JobStates{Pending: 1, Running: 1},
-						JobTres:   JobTres{CpusAlloc: 12, MemoryAlloc: 3072 * 1024 * 1024, GpusAlloc: 4},
 					},
 				},
 			},
@@ -89,7 +87,6 @@ func TestUserCollector_getUserMetrics(t *testing.T) {
 			opts := []cmp.Option{
 				cmpopts.IgnoreUnexported(UserMetrics{}),
 				cmpopts.IgnoreFields(JobStates{}, "total"),
-				cmpopts.IgnoreFields(JobTres{}, "total"),
 			}
 			if diff := cmp.Diff(tt.want, got, opts...); diff != "" {
 				t.Errorf("userCollector.getUserMetrics() = (-want,+got):\n%s", diff)

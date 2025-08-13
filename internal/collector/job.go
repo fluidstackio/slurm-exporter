@@ -195,69 +195,73 @@ func (c *jobCollector) Collect(ch chan<- prometheus.Metric) {
 	for _, jobState := range metrics.JobIndividualStates {
 		jobID := jobState.JobID
 		jobName := jobState.JobName
+		account := jobState.Account
+		partition := jobState.Partition
+		userID := jobState.UserID
+		userName := jobState.UserName
 		for _, node := range jobState.Nodes {
 			// Individual Job State Metrics ------------------------------------
 			// Only emit when state is active (value = 1) for cardinality reasons.
 
 			// Base States
 			if jobState.BootFail == 1 {
-				ch <- prometheus.MustNewConstMetric(c.JobStateBootFail, prometheus.GaugeValue, 1, jobID, jobName, node)
+				ch <- prometheus.MustNewConstMetric(c.JobStateBootFail, prometheus.GaugeValue, 1, jobID, jobName, node, account, partition, userID, userName)
 			}
 			if jobState.Cancelled == 1 {
-				ch <- prometheus.MustNewConstMetric(c.JobStateCancelled, prometheus.GaugeValue, 1, jobID, jobName, node)
+				ch <- prometheus.MustNewConstMetric(c.JobStateCancelled, prometheus.GaugeValue, 1, jobID, jobName, node, account, partition, userID, userName)
 			}
 			if jobState.Completed == 1 {
-				ch <- prometheus.MustNewConstMetric(c.JobStateCompleted, prometheus.GaugeValue, 1, jobID, jobName, node)
+				ch <- prometheus.MustNewConstMetric(c.JobStateCompleted, prometheus.GaugeValue, 1, jobID, jobName, node, account, partition, userID, userName)
 			}
 			if jobState.Deadline == 1 {
-				ch <- prometheus.MustNewConstMetric(c.JobStateDeadline, prometheus.GaugeValue, 1, jobID, jobName, node)
+				ch <- prometheus.MustNewConstMetric(c.JobStateDeadline, prometheus.GaugeValue, 1, jobID, jobName, node, account, partition, userID, userName)
 			}
 			if jobState.Failed == 1 {
-				ch <- prometheus.MustNewConstMetric(c.JobStateFailed, prometheus.GaugeValue, 1, jobID, jobName, node)
+				ch <- prometheus.MustNewConstMetric(c.JobStateFailed, prometheus.GaugeValue, 1, jobID, jobName, node, account, partition, userID, userName)
 			}
 			if jobState.Pending == 1 {
-				ch <- prometheus.MustNewConstMetric(c.JobStatePending, prometheus.GaugeValue, 1, jobID, jobName, node)
+				ch <- prometheus.MustNewConstMetric(c.JobStatePending, prometheus.GaugeValue, 1, jobID, jobName, node, account, partition, userID, userName)
 			}
 			if jobState.Preempted == 1 {
-				ch <- prometheus.MustNewConstMetric(c.JobStatePreempted, prometheus.GaugeValue, 1, jobID, jobName, node)
+				ch <- prometheus.MustNewConstMetric(c.JobStatePreempted, prometheus.GaugeValue, 1, jobID, jobName, node, account, partition, userID, userName)
 			}
 			if jobState.Running == 1 {
-				ch <- prometheus.MustNewConstMetric(c.JobStateRunning, prometheus.GaugeValue, 1, jobID, jobName, node)
+				ch <- prometheus.MustNewConstMetric(c.JobStateRunning, prometheus.GaugeValue, 1, jobID, jobName, node, account, partition, userID, userName)
 			}
 			if jobState.Suspended == 1 {
-				ch <- prometheus.MustNewConstMetric(c.JobStateSuspended, prometheus.GaugeValue, 1, jobID, jobName, node)
+				ch <- prometheus.MustNewConstMetric(c.JobStateSuspended, prometheus.GaugeValue, 1, jobID, jobName, node, account, partition, userID, userName)
 			}
 			if jobState.Timeout == 1 {
-				ch <- prometheus.MustNewConstMetric(c.JobStateTimeout, prometheus.GaugeValue, 1, jobID, jobName, node)
+				ch <- prometheus.MustNewConstMetric(c.JobStateTimeout, prometheus.GaugeValue, 1, jobID, jobName, node, account, partition, userID, userName)
 			}
 			if jobState.NodeFail == 1 {
-				ch <- prometheus.MustNewConstMetric(c.JobStateNodeFail, prometheus.GaugeValue, 1, jobID, jobName, node)
+				ch <- prometheus.MustNewConstMetric(c.JobStateNodeFail, prometheus.GaugeValue, 1, jobID, jobName, node, account, partition, userID, userName)
 			}
 			if jobState.OutOfMemory == 1 {
-				ch <- prometheus.MustNewConstMetric(c.JobStateOutOfMemory, prometheus.GaugeValue, 1, jobID, jobName, node)
+				ch <- prometheus.MustNewConstMetric(c.JobStateOutOfMemory, prometheus.GaugeValue, 1, jobID, jobName, node, account, partition, userID, userName)
 			}
 			// Flag States
 			if jobState.Completing == 1 {
-				ch <- prometheus.MustNewConstMetric(c.JobStateCompleting, prometheus.GaugeValue, 1, jobID, jobName, node)
+				ch <- prometheus.MustNewConstMetric(c.JobStateCompleting, prometheus.GaugeValue, 1, jobID, jobName, node, account, partition, userID, userName)
 			}
 			if jobState.Configuring == 1 {
-				ch <- prometheus.MustNewConstMetric(c.JobStateConfiguring, prometheus.GaugeValue, 1, jobID, jobName, node)
+				ch <- prometheus.MustNewConstMetric(c.JobStateConfiguring, prometheus.GaugeValue, 1, jobID, jobName, node, account, partition, userID, userName)
 			}
 			if jobState.PowerUpNode == 1 {
-				ch <- prometheus.MustNewConstMetric(c.JobStatePowerUpNode, prometheus.GaugeValue, 1, jobID, jobName, node)
+				ch <- prometheus.MustNewConstMetric(c.JobStatePowerUpNode, prometheus.GaugeValue, 1, jobID, jobName, node, account, partition, userID, userName)
 			}
 			if jobState.StageOut == 1 {
-				ch <- prometheus.MustNewConstMetric(c.JobStateStageOut, prometheus.GaugeValue, 1, jobID, jobName, node)
+				ch <- prometheus.MustNewConstMetric(c.JobStateStageOut, prometheus.GaugeValue, 1, jobID, jobName, node, account, partition, userID, userName)
 			}
 			// Other States
 			if jobState.Hold == 1 {
-				ch <- prometheus.MustNewConstMetric(c.JobStateHold, prometheus.GaugeValue, 1, jobID, jobName, node)
+				ch <- prometheus.MustNewConstMetric(c.JobStateHold, prometheus.GaugeValue, 1, jobID, jobName, node, account, partition, userID, userName)
 			}
 
 			// Individual Job Tres Metrics -------------------------------------
-			ch <- prometheus.MustNewConstMetric(c.JobTres.CpusAlloc, prometheus.GaugeValue, float64(jobState.CpusAlloc), jobID, jobName, node)
-			ch <- prometheus.MustNewConstMetric(c.JobTres.MemoryAlloc, prometheus.GaugeValue, float64(jobState.MemoryAlloc), jobID, jobName, node)
-			ch <- prometheus.MustNewConstMetric(c.JobTres.GpusAlloc, prometheus.GaugeValue, float64(jobState.GpusAlloc), jobID, jobName, node)
+			ch <- prometheus.MustNewConstMetric(c.JobTres.CpusAlloc, prometheus.GaugeValue, float64(jobState.CpusAlloc), jobID, jobName, node, account, partition, userID, userName)
+			ch <- prometheus.MustNewConstMetric(c.JobTres.MemoryAlloc, prometheus.GaugeValue, float64(jobState.MemoryAlloc), jobID, jobName, node, account, partition, userID, userName)
+			ch <- prometheus.MustNewConstMetric(c.JobTres.GpusAlloc, prometheus.GaugeValue, float64(jobState.GpusAlloc), jobID, jobName, node, account, partition, userID, userName)
 		}
 	}
 }
@@ -272,28 +276,22 @@ func (c *jobCollector) getJobMetrics(ctx context.Context) (*JobMetrics, error) {
 }
 
 func calculateJobMetrics(jobList *types.V0041JobInfoList) *JobMetrics {
+	// Collective Metrics
 	metrics := &JobMetrics{
 		JobCount:            uint(len(jobList.Items)),
 		JobIndividualStates: make([]JobIndividualStates, 0, len(jobList.Items)),
 	}
+
+	// Individual job metrics
 	for _, job := range jobList.Items {
 		calculateJobState(&metrics.JobStates, job)
-		calculateJobTres(&metrics.JobTres, job)
-		// Calculate individual job states and TRES
 		jobStates := calculateJobIndividualStates(job)
 		if jobStates != nil {
 			metrics.JobIndividualStates = append(metrics.JobIndividualStates, *jobStates)
 		}
 	}
-	return metrics
-}
 
-func calculateJobTres(metrics *JobTres, job types.V0041JobInfo) {
-	metrics.total++
-	res := getJobResourceAlloc(job)
-	metrics.CpusAlloc += res.Cpus
-	metrics.MemoryAlloc += res.Memory
-	metrics.GpusAlloc += res.Gpus
+	return metrics
 }
 
 func calculateJobState(metrics *JobStates, job types.V0041JobInfo) {
@@ -377,7 +375,6 @@ func getJobResourceAlloc(job types.V0041JobInfo) jobResources {
 type JobMetrics struct {
 	JobCount            uint
 	JobStates           JobStates
-	JobTres             JobTres
 	JobIndividualStates []JobIndividualStates
 }
 
@@ -407,21 +404,14 @@ type JobStates struct {
 	Hold uint
 }
 
-// JobTres holds the total allocated resources across all jobs in the cluster
-type JobTres struct {
-	total uint
-	// CPUs
-	CpusAlloc uint
-	// Memory
-	MemoryAlloc uint
-	// GPUs
-	GpusAlloc uint
-}
-
 type JobIndividualStates struct {
-	JobID   string
-	JobName string
-	Nodes   []string
+	JobID     string
+	JobName   string
+	Nodes     []string
+	Account   string
+	Partition string
+	UserID    string
+	UserName  string
 	// Base States
 	BootFail    int
 	Cancelled   int
@@ -442,7 +432,7 @@ type JobIndividualStates struct {
 	StageOut    int
 	// Other States
 	Hold int
-	// TRES
+	// Tres
 	CpusAlloc   uint
 	MemoryAlloc uint
 	GpusAlloc   uint
@@ -466,9 +456,13 @@ func calculateJobIndividualStates(job types.V0041JobInfo) *JobIndividualStates {
 	}
 
 	jobStates := &JobIndividualStates{
-		JobID:   jobID,
-		JobName: jobName,
-		Nodes:   nodes,
+		JobID:     jobID,
+		JobName:   jobName,
+		Nodes:     nodes,
+		Account:   ptr.Deref(job.Account, ""),
+		Partition: ptr.Deref(job.Partition, ""),
+		UserID:    fmt.Sprintf("%d", ptr.Deref(job.UserId, 0)),
+		UserName:  ptr.Deref(job.UserName, ""),
 	}
 
 	// Base States
@@ -526,7 +520,7 @@ func calculateJobIndividualStates(job types.V0041JobInfo) *JobIndividualStates {
 		jobStates.Hold = 1
 	}
 
-	// Get TRES allocations for this job
+	// Get Tres allocations for this job
 	res := getJobResourceAlloc(job)
 	jobStates.CpusAlloc = res.Cpus
 	jobStates.MemoryAlloc = res.Memory

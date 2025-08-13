@@ -58,7 +58,6 @@ func TestAccountCollector_getAccountMetrics(t *testing.T) {
 					"root": {
 						JobCount:  2,
 						JobStates: JobStates{Running: 2},
-						JobTres:   JobTres{CpusAlloc: 20, MemoryAlloc: 4096 * 1024 * 1024, GpusAlloc: 6},
 					},
 				},
 			},
@@ -88,7 +87,6 @@ func TestAccountCollector_getAccountMetrics(t *testing.T) {
 			opts := []cmp.Option{
 				cmpopts.IgnoreUnexported(AccountMetrics{}),
 				cmpopts.IgnoreFields(JobStates{}, "total"),
-				cmpopts.IgnoreFields(JobTres{}, "total"),
 			}
 			if diff := cmp.Diff(tt.want, got, opts...); diff != "" {
 				t.Errorf("accountCollector.getAccountMetrics() = (-want,+got):\n%s", diff)
