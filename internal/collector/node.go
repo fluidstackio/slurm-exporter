@@ -79,13 +79,13 @@ func NewNodeCollector(slurmClient client.Client) prometheus.Collector {
 			// CPUs
 			CpusTotal:     prometheus.NewDesc("slurm_node_cpus_total", "Total number of CPUs on the node", nodeLabels, nil),
 			CpusEffective: prometheus.NewDesc("slurm_node_cpus_effective_total", "Total number of effective CPUs on the node, excludes CoreSpec", nodeLabels, nil),
-			CpusAlloc:     prometheus.NewDesc("slurm_node_cpus_alloc_total", "Number of Allocated CPUs on the node", nodeLabels, nil),
-			CpusIdle:      prometheus.NewDesc("slurm_node_cpus_idle_total", "Number of Idle CPUs on the node", nodeLabels, nil),
+			CpusAlloc:     prometheus.NewDesc("slurm_node_cpus_alloc_total", "Total number of Allocated CPUs on the node", nodeLabels, nil),
+			CpusIdle:      prometheus.NewDesc("slurm_node_cpus_idle_total", "Total number of Idle CPUs on the node", nodeLabels, nil),
 			// Memory
-			MemoryTotal:     prometheus.NewDesc("slurm_node_memory_bytes", "Total amount of Memory (MB) on the node", nodeLabels, nil),
-			MemoryEffective: prometheus.NewDesc("slurm_node_memory_effective_bytes", "Total amount of effective Memory (MB) on the node, excludes MemSpec", nodeLabels, nil),
-			MemoryAlloc:     prometheus.NewDesc("slurm_node_memory_alloc_bytes", "Amount of Allocated Memory (MB) on the node", nodeLabels, nil),
-			MemoryFree:      prometheus.NewDesc("slurm_node_memory_free_bytes", "Amount of Free Memory (MB) on the node", nodeLabels, nil),
+			MemoryTotal:     prometheus.NewDesc("slurm_node_memory_total", "Total amount of Memory (bytes) on the node", nodeLabels, nil),
+			MemoryEffective: prometheus.NewDesc("slurm_node_memory_effective_total", "Total amount of effective Memory (bytes) on the node, excludes MemSpec", nodeLabels, nil),
+			MemoryAlloc:     prometheus.NewDesc("slurm_node_memory_alloc_total", "Total amount of Allocated Memory (bytes) on the node", nodeLabels, nil),
+			MemoryFree:      prometheus.NewDesc("slurm_node_memory_free_total", "Total amount of Free Memory (bytes) on the node", nodeLabels, nil),
 			// GPUs
 			GpusTotal: prometheus.NewDesc("slurm_node_gpus_total", "Total number of GPUs on the node", nodeLabels, nil),
 		},

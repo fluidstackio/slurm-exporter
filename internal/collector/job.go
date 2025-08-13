@@ -70,7 +70,7 @@ func NewJobCollector(slurmClient client.Client) prometheus.Collector {
 			// CPUs
 			CpusAlloc: prometheus.NewDesc("slurm_jobs_cpus_alloc_total", "Number of Allocated CPUs among jobs", nil, nil),
 			// Memory
-			MemoryAlloc: prometheus.NewDesc("slurm_jobs_memory_alloc_bytes", "Amount of Allocated Memory (MB) among jobs", nil, nil),
+			MemoryAlloc: prometheus.NewDesc("slurm_jobs_memory_alloc_total", "Amount of Allocated Memory among jobs", nil, nil),
 			// GPUs
 			GpusAlloc: prometheus.NewDesc("slurm_jobs_gpus_alloc_total", "Number of Allocated GPUs among jobs", nil, nil),
 		},
