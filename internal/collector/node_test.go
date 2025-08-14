@@ -293,6 +293,8 @@ func Test_calculateNodeTres(t *testing.T) {
 				MemoryTotal:     4096 * 1024 * 1024,
 				MemoryEffective: 3072 * 1024 * 1024,
 				MemoryFree:      4096 * 1024 * 1024,
+				GpusTotal:       8,
+				GpusAlloc:       0,
 			},
 		},
 		{
@@ -308,6 +310,8 @@ func Test_calculateNodeTres(t *testing.T) {
 				MemoryEffective: 2048 * 1024 * 1024,
 				MemoryAlloc:     2000 * 1024 * 1024,
 				MemoryFree:      48 * 1024 * 1024,
+				GpusTotal:       4,
+				GpusAlloc:       4,
 			},
 		},
 		{
@@ -323,6 +327,8 @@ func Test_calculateNodeTres(t *testing.T) {
 				MemoryEffective: 4096 * 1024 * 1024,
 				MemoryAlloc:     3000 * 1024 * 1024,
 				MemoryFree:      1096 * 1024 * 1024,
+				GpusTotal:       8,
+				GpusAlloc:       8,
 			},
 		},
 		{
@@ -339,6 +345,8 @@ func Test_calculateNodeTres(t *testing.T) {
 				MemoryEffective: 1024 * 1024 * 1024,
 				MemoryAlloc:     800 * 1024 * 1024,
 				MemoryFree:      224 * 1024 * 1024,
+				GpusTotal:       2,
+				GpusAlloc:       1,
 			},
 		},
 	}
@@ -412,6 +420,8 @@ func TestNodeCollector_getNodeMetrics(t *testing.T) {
 						MemoryEffective: 10240 * 1024 * 1024,
 						MemoryAlloc:     5800 * 1024 * 1024,
 						MemoryFree:      5464 * 1024 * 1024,
+						GpusTotal:       22,
+						GpusAlloc:       13,
 					},
 				},
 				NodeTresPer: map[string]*NodeTres{
@@ -422,6 +432,8 @@ func TestNodeCollector_getNodeMetrics(t *testing.T) {
 						MemoryTotal:     4096 * 1024 * 1024,
 						MemoryEffective: 3072 * 1024 * 1024,
 						MemoryFree:      4096 * 1024 * 1024,
+						GpusTotal:       8,
+						GpusAlloc:       0,
 					},
 					"node1": {
 						CpusTotal:       8,
@@ -431,6 +443,8 @@ func TestNodeCollector_getNodeMetrics(t *testing.T) {
 						MemoryEffective: 2048 * 1024 * 1024,
 						MemoryAlloc:     2000 * 1024 * 1024,
 						MemoryFree:      48 * 1024 * 1024,
+						GpusTotal:       4,
+						GpusAlloc:       4,
 					},
 					"node2": {
 						CpusTotal:       16,
@@ -440,6 +454,8 @@ func TestNodeCollector_getNodeMetrics(t *testing.T) {
 						MemoryEffective: 4096 * 1024 * 1024,
 						MemoryAlloc:     3000 * 1024 * 1024,
 						MemoryFree:      1096 * 1024 * 1024,
+						GpusTotal:       8,
+						GpusAlloc:       8,
 					},
 					"node3": {
 						CpusTotal:       6,
@@ -450,6 +466,8 @@ func TestNodeCollector_getNodeMetrics(t *testing.T) {
 						MemoryEffective: 1024 * 1024 * 1024,
 						MemoryAlloc:     800 * 1024 * 1024,
 						MemoryFree:      224 * 1024 * 1024,
+						GpusTotal:       2,
+						GpusAlloc:       1,
 					},
 				},
 				NodeCombinedStates: map[string]*NodeCombinedState{
