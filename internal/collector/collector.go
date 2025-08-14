@@ -6,7 +6,7 @@ package collector
 var (
 	accountLabels = []string{"account"}
 
-	userLabels = []string{"userid", "username"}
+	userLabels = []string{"user_id", "user_name"}
 
 	nodeLabels = []string{"node"}
 
