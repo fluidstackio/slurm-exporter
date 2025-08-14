@@ -17,4 +17,8 @@ var (
 	combinedStateLabels = []string{"node", "combined_state"}
 
 	jobLabels = []string{"job_id", "job_name", "node", "account", "partition", "user_id", "user_name"}
+
+	jobLabelsWithState = []string{"job_id", "job_name", "node", "account", "partition", "user_id", "user_name", "state", "hold"}
+
+	jobLabelsWithFlag = []string{"job_id", "job_name", "node", "account", "partition", "user_id", "user_name", "flag"}
 )
