@@ -44,6 +44,7 @@ func ParseUint32NoVal(noVal *api.V0041Uint32NoValStruct) uint32 {
 }
 
 var gpuGresRegex = regexp.MustCompile(`\bgpu:(\d+)`)
+var gpuGresUsedRegex = regexp.MustCompile(`\bgpu:[^:]*:(\d+)`)
 
 // ParseNodeGresGpu parses GPU count from a node's gres field
 // Examples from Slurm API node response:
@@ -51,6 +52,26 @@ var gpuGresRegex = regexp.MustCompile(`\bgpu:(\d+)`)
 //   - "" returns 0
 func ParseNodeGresGpu(s string) int32 {
 	matches := gpuGresRegex.FindStringSubmatch(s)
+
+	if len(matches) < 2 {
+		return 0
+	}
+
+	num, err := strconv.Atoi(matches[1])
+	if err != nil {
+		return 0
+	}
+
+	return int32(num)
+}
+
+// ParseNodeGresUsedGpu parses allocated GPU count from a node's gres_used field
+// Examples from Slurm API node response:
+//   - "gpu:(null):8(IDX:0-7)" returns 8
+//   - "gpu:(null):0(IDX:N/A)" returns 0
+//   - "" returns 0
+func ParseNodeGresUsedGpu(s string) int32 {
+	matches := gpuGresUsedRegex.FindStringSubmatch(s)
 
 	if len(matches) < 2 {
 		return 0

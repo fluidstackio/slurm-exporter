@@ -109,6 +109,8 @@ func TestPartitionCollector_getPartitionMetrics(t *testing.T) {
 							MemoryEffective: 9216 * 1024 * 1024,
 							MemoryAlloc:     5000 * 1024 * 1024,
 							MemoryFree:      5240 * 1024 * 1024,
+							GpusTotal:       20,
+							GpusAlloc:       12,
 						},
 					},
 					partition2Name: {
@@ -130,6 +132,8 @@ func TestPartitionCollector_getPartitionMetrics(t *testing.T) {
 							MemoryEffective: 7168 * 1024 * 1024,
 							MemoryAlloc:     5800 * 1024 * 1024,
 							MemoryFree:      1368 * 1024 * 1024,
+							GpusTotal:       14,
+							GpusAlloc:       13,
 						},
 					},
 				},

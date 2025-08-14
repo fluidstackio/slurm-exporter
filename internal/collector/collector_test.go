@@ -95,6 +95,8 @@ var (
 			Number: ptr.To[int64](4096),
 			Set:    ptr.To(true),
 		},
+		Gres:     ptr.To("gpu:8(S:0-1)"),
+		GresUsed: ptr.To("gpu:(null):0(IDX:N/A)"),
 	}}
 	node1 = &types.V0041Node{V0041Node: api.V0041Node{
 		Name:       ptr.To("node1"),
@@ -112,6 +114,8 @@ var (
 			Number: ptr.To[int64](48),
 			Set:    ptr.To(true),
 		},
+		Gres:     ptr.To("gpu:4(S:0)"),
+		GresUsed: ptr.To("gpu:(null):4(IDX:0-3)"),
 	}}
 	node2 = &types.V0041Node{V0041Node: api.V0041Node{
 		Name:       ptr.To("node2"),
@@ -130,6 +134,8 @@ var (
 			Number: ptr.To[int64](1096),
 			Set:    ptr.To(true),
 		},
+		Gres:     ptr.To("gpu:8(S:0-1)"),
+		GresUsed: ptr.To("gpu:(null):8(IDX:0-7)"),
 	}}
 	node3 = &types.V0041Node{V0041Node: api.V0041Node{
 		Name:       ptr.To("node3"),
@@ -148,6 +154,8 @@ var (
 			Number: ptr.To[int64](224),
 			Set:    ptr.To(true),
 		},
+		Gres:     ptr.To("gpu:2(S:0)"),
+		GresUsed: ptr.To("gpu:(null):1(IDX:0)"),
 	}}
 	nodeList = &types.V0041NodeList{
 		Items: []types.V0041Node{

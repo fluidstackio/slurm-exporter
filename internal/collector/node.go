@@ -88,6 +88,7 @@ func NewNodeCollector(slurmClient client.Client) prometheus.Collector {
 			MemoryFree:      prometheus.NewDesc("slurm_node_memory_free_total", "Total amount of Free Memory (bytes) on the node", nodeLabels, nil),
 			// GPUs
 			GpusTotal: prometheus.NewDesc("slurm_node_gpus_total", "Total number of GPUs on the node", nodeLabels, nil),
+			GpusAlloc: prometheus.NewDesc("slurm_node_gpus_alloc_total", "Total number of Allocated GPUs on the node", nodeLabels, nil),
 		},
 	}
 }
@@ -168,6 +169,7 @@ type nodeTresCollector struct {
 	MemoryFree      *prometheus.Desc
 	// GPUs
 	GpusTotal *prometheus.Desc
+	GpusAlloc *prometheus.Desc
 }
 
 func (c *nodeCollector) Describe(ch chan<- *prometheus.Desc) {
@@ -318,6 +320,7 @@ func (c *nodeCollector) Collect(ch chan<- prometheus.Metric) {
 		ch <- prometheus.MustNewConstMetric(c.NodeTres.MemoryFree, prometheus.GaugeValue, float64(data.MemoryFree), node)
 		// GPUs
 		ch <- prometheus.MustNewConstMetric(c.NodeTres.GpusTotal, prometheus.GaugeValue, float64(data.GpusTotal), node)
+		ch <- prometheus.MustNewConstMetric(c.NodeTres.GpusAlloc, prometheus.GaugeValue, float64(data.GpusAlloc), node)
 	}
 }
 
@@ -416,6 +419,7 @@ func calculateNodeTres(metrics *NodeTres, node types.V0041Node) {
 	metrics.MemoryFree += uint(ParseUint64NoVal(node.FreeMem)) * 1024 * 1024
 	// GPUs
 	metrics.GpusTotal += uint(ParseNodeGresGpu(ptr.Deref(node.Gres, "")))
+	metrics.GpusAlloc += uint(ParseNodeGresUsedGpu(ptr.Deref(node.GresUsed, "")))
 }
 
 type NodeCollectorMetrics struct {
@@ -508,6 +512,7 @@ type NodeTres struct {
 	MemoryFree      uint
 	// GPUs
 	GpusTotal uint
+	GpusAlloc uint
 }
 
 func calculateNodeCombinedState(node types.V0041Node) *NodeCombinedState {

@@ -51,6 +51,57 @@ func TestParseGpuGres(t *testing.T) {
 	}
 }
 
+func TestParseNodeGresUsedGpu(t *testing.T) {
+	tests := []struct {
+		name string
+		gres string
+		want int32
+	}{
+		{
+			name: "empty gres_used",
+			gres: "",
+			want: 0,
+		},
+		{
+			name: "8 GPUs allocated",
+			gres: "gpu:(null):8(IDX:0-7)",
+			want: 8,
+		},
+		{
+			name: "0 GPUs allocated",
+			gres: "gpu:(null):0(IDX:N/A)",
+			want: 0,
+		},
+		{
+			name: "4 GPUs allocated",
+			gres: "gpu:(null):4(IDX:0-3)",
+			want: 4,
+		},
+		{
+			name: "1 GPU allocated",
+			gres: "gpu:(null):1(IDX:0)",
+			want: 1,
+		},
+		{
+			name: "GPU with model name",
+			gres: "gpu:tesla:2(IDX:0-1)",
+			want: 2,
+		},
+		{
+			name: "no gres prefix",
+			gres: "(null):8(IDX:0-7)",
+			want: 0,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := ParseNodeGresUsedGpu(tt.gres); got != tt.want {
+				t.Errorf("ParseNodeGresUsedGpu() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestParseTresGpu(t *testing.T) {
 	tests := []struct {
 		name    string
