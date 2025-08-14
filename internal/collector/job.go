@@ -6,6 +6,7 @@ package collector
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"k8s.io/utils/ptr"
@@ -21,50 +22,10 @@ func NewJobCollector(slurmClient client.Client) prometheus.Collector {
 	return &jobCollector{
 		slurmClient: slurmClient,
 
-		JobCount: prometheus.NewDesc("slurm_jobs_total", "Total number of jobs", nil, nil),
-		JobStates: jobStatesCollector{
-			// Base States
-			BootFail:    prometheus.NewDesc("slurm_jobs_bootfail_total", "Number of jobs in BootFail state", nil, nil),
-			Cancelled:   prometheus.NewDesc("slurm_jobs_cancelled_total", "Number of jobs in Cancelled state", nil, nil),
-			Completed:   prometheus.NewDesc("slurm_jobs_completed_total", "Number of jobs in Completed state", nil, nil),
-			Deadline:    prometheus.NewDesc("slurm_jobs_deadline_total", "Number of jobs in Deadline state", nil, nil),
-			Failed:      prometheus.NewDesc("slurm_jobs_failed_total", "Number of jobs in Failed state", nil, nil),
-			Pending:     prometheus.NewDesc("slurm_jobs_pending_total", "Number of jobs in Pending state", nil, nil),
-			Preempted:   prometheus.NewDesc("slurm_jobs_preempted_total", "Number of jobs in Preempted state", nil, nil),
-			Running:     prometheus.NewDesc("slurm_jobs_running_total", "Number of jobs in Running state", nil, nil),
-			Suspended:   prometheus.NewDesc("slurm_jobs_suspended_total", "Number of jobs in Suspended state", nil, nil),
-			Timeout:     prometheus.NewDesc("slurm_jobs_timeout_total", "Number of jobs in Timeout state", nil, nil),
-			NodeFail:    prometheus.NewDesc("slurm_jobs_nodefail_total", "Number of jobs in NodeFail state", nil, nil),
-			OutOfMemory: prometheus.NewDesc("slurm_jobs_outofmemory_total", "Number of jobs in OutOfMemory state", nil, nil),
-			// Flag States
-			Completing:  prometheus.NewDesc("slurm_jobs_completing_total", "Number of jobs with Completing flag", nil, nil),
-			Configuring: prometheus.NewDesc("slurm_jobs_configuring_total", "Number of jobs with Configuring flag", nil, nil),
-			PowerUpNode: prometheus.NewDesc("slurm_jobs_powerupnode_total", "Number of jobs with PowerUpNode flag", nil, nil),
-			StageOut:    prometheus.NewDesc("slurm_jobs_stageout_total", "Number of jobs with StageOut flag", nil, nil),
-			// Other States
-			Hold: prometheus.NewDesc("slurm_jobs_hold_total", "Number of jobs with Hold flag", nil, nil),
-		},
-		// Individual Job State Metrics
-		// Base States
-		JobStateBootFail:    prometheus.NewDesc("slurm_job_state_bootfail", "The BootFail state of the job", jobLabels, nil),
-		JobStateCancelled:   prometheus.NewDesc("slurm_job_state_cancelled", "The Cancelled state of the job", jobLabels, nil),
-		JobStateCompleted:   prometheus.NewDesc("slurm_job_state_completed", "The Completed state of the job", jobLabels, nil),
-		JobStateDeadline:    prometheus.NewDesc("slurm_job_state_deadline", "The Deadline state of the job", jobLabels, nil),
-		JobStateFailed:      prometheus.NewDesc("slurm_job_state_failed", "The Failed state of the job", jobLabels, nil),
-		JobStatePending:     prometheus.NewDesc("slurm_job_state_pending", "The Pending state of the job", jobLabels, nil),
-		JobStatePreempted:   prometheus.NewDesc("slurm_job_state_preempted", "The Preempted state of the job", jobLabels, nil),
-		JobStateRunning:     prometheus.NewDesc("slurm_job_state_running", "The Running state of the job", jobLabels, nil),
-		JobStateSuspended:   prometheus.NewDesc("slurm_job_state_suspended", "The Suspended state of the job", jobLabels, nil),
-		JobStateTimeout:     prometheus.NewDesc("slurm_job_state_timeout", "The Timeout state of the job", jobLabels, nil),
-		JobStateNodeFail:    prometheus.NewDesc("slurm_job_state_nodefail", "The NodeFail state of the job", jobLabels, nil),
-		JobStateOutOfMemory: prometheus.NewDesc("slurm_job_state_outofmemory", "The OutOfMemory state of the job", jobLabels, nil),
-		// Flag States
-		JobStateCompleting:  prometheus.NewDesc("slurm_job_state_completing", "The Completing state of the job", jobLabels, nil),
-		JobStateConfiguring: prometheus.NewDesc("slurm_job_state_configuring", "The Configuring state of the job", jobLabels, nil),
-		JobStatePowerUpNode: prometheus.NewDesc("slurm_job_state_powerupnode", "The PowerUpNode state of the job", jobLabels, nil),
-		JobStateStageOut:    prometheus.NewDesc("slurm_job_state_stageout", "The StageOut state of the job", jobLabels, nil),
-		// Other States
-		JobStateHold: prometheus.NewDesc("slurm_job_state_hold", "The Hold state of the job", jobLabels, nil),
+		// New unified state metric with state and hold labels
+		JobState: prometheus.NewDesc("slurm_job_state", "The base state of the job", jobLabelsWithState, nil),
+		// New flag metric with concatenated flags
+		JobFlag: prometheus.NewDesc("slurm_job_flag", "The flag states of the job", jobLabelsWithFlag, nil),
 		// Tres
 		JobTres: jobTresCollector{
 			// CPUs
@@ -80,64 +41,16 @@ func NewJobCollector(slurmClient client.Client) prometheus.Collector {
 type jobCollector struct {
 	slurmClient client.Client
 
-	// -------------------------------------------------------------------------
-	// Collective Metrics
-	// -------------------------------------------------------------------------
-	JobCount  *prometheus.Desc
-	JobStates jobStatesCollector
+	// New unified state metric with state and hold labels
+	JobState *prometheus.Desc
 
-	// -------------------------------------------------------------------------
-	// Individual Metrics
-	// -------------------------------------------------------------------------
-
-	// Individual Job State Metrics --------------------------------------------
-	// Base States
-	JobStateBootFail    *prometheus.Desc
-	JobStateCancelled   *prometheus.Desc
-	JobStateCompleted   *prometheus.Desc
-	JobStateDeadline    *prometheus.Desc
-	JobStateFailed      *prometheus.Desc
-	JobStatePending     *prometheus.Desc
-	JobStatePreempted   *prometheus.Desc
-	JobStateRunning     *prometheus.Desc
-	JobStateSuspended   *prometheus.Desc
-	JobStateTimeout     *prometheus.Desc
-	JobStateNodeFail    *prometheus.Desc
-	JobStateOutOfMemory *prometheus.Desc
-	// Flag States
-	JobStateCompleting  *prometheus.Desc
-	JobStateConfiguring *prometheus.Desc
-	JobStatePowerUpNode *prometheus.Desc
-	JobStateStageOut    *prometheus.Desc
-	// Other States
-	JobStateHold *prometheus.Desc
+	// New flag metric with concatenated flags
+	JobFlag *prometheus.Desc
 
 	// Individual Job Tres Metrics ---------------------------------------------
 	JobTres jobTresCollector
 }
 
-type jobStatesCollector struct {
-	// Base States
-	BootFail    *prometheus.Desc
-	Cancelled   *prometheus.Desc
-	Completed   *prometheus.Desc
-	Deadline    *prometheus.Desc
-	Failed      *prometheus.Desc
-	Pending     *prometheus.Desc
-	Preempted   *prometheus.Desc
-	Running     *prometheus.Desc
-	Suspended   *prometheus.Desc
-	Timeout     *prometheus.Desc
-	NodeFail    *prometheus.Desc
-	OutOfMemory *prometheus.Desc
-	// Flag States
-	Completing  *prometheus.Desc
-	Configuring *prometheus.Desc
-	PowerUpNode *prometheus.Desc
-	StageOut    *prometheus.Desc
-	// Other States
-	Hold *prometheus.Desc
-}
 
 type jobTresCollector struct {
 	// CPUs
@@ -164,33 +77,6 @@ func (c *jobCollector) Collect(ch chan<- prometheus.Metric) {
 		return
 	}
 
-	// -------------------------------------------------------------------------
-	// Collective Metrics
-	// -------------------------------------------------------------------------
-	// Counts
-	ch <- prometheus.MustNewConstMetric(c.JobCount, prometheus.GaugeValue, float64(metrics.JobCount))
-	// States
-	ch <- prometheus.MustNewConstMetric(c.JobStates.BootFail, prometheus.GaugeValue, float64(metrics.JobStates.BootFail))
-	ch <- prometheus.MustNewConstMetric(c.JobStates.Cancelled, prometheus.GaugeValue, float64(metrics.JobStates.Cancelled))
-	ch <- prometheus.MustNewConstMetric(c.JobStates.Completed, prometheus.GaugeValue, float64(metrics.JobStates.Completed))
-	ch <- prometheus.MustNewConstMetric(c.JobStates.Deadline, prometheus.GaugeValue, float64(metrics.JobStates.Deadline))
-	ch <- prometheus.MustNewConstMetric(c.JobStates.Failed, prometheus.GaugeValue, float64(metrics.JobStates.Failed))
-	ch <- prometheus.MustNewConstMetric(c.JobStates.Pending, prometheus.GaugeValue, float64(metrics.JobStates.Pending))
-	ch <- prometheus.MustNewConstMetric(c.JobStates.Preempted, prometheus.GaugeValue, float64(metrics.JobStates.Preempted))
-	ch <- prometheus.MustNewConstMetric(c.JobStates.Running, prometheus.GaugeValue, float64(metrics.JobStates.Running))
-	ch <- prometheus.MustNewConstMetric(c.JobStates.Suspended, prometheus.GaugeValue, float64(metrics.JobStates.Suspended))
-	ch <- prometheus.MustNewConstMetric(c.JobStates.Timeout, prometheus.GaugeValue, float64(metrics.JobStates.Timeout))
-	ch <- prometheus.MustNewConstMetric(c.JobStates.NodeFail, prometheus.GaugeValue, float64(metrics.JobStates.NodeFail))
-	ch <- prometheus.MustNewConstMetric(c.JobStates.OutOfMemory, prometheus.GaugeValue, float64(metrics.JobStates.OutOfMemory))
-	ch <- prometheus.MustNewConstMetric(c.JobStates.Completing, prometheus.GaugeValue, float64(metrics.JobStates.Completing))
-	ch <- prometheus.MustNewConstMetric(c.JobStates.Configuring, prometheus.GaugeValue, float64(metrics.JobStates.Configuring))
-	ch <- prometheus.MustNewConstMetric(c.JobStates.PowerUpNode, prometheus.GaugeValue, float64(metrics.JobStates.PowerUpNode))
-	ch <- prometheus.MustNewConstMetric(c.JobStates.StageOut, prometheus.GaugeValue, float64(metrics.JobStates.StageOut))
-	ch <- prometheus.MustNewConstMetric(c.JobStates.Hold, prometheus.GaugeValue, float64(metrics.JobStates.Hold))
-
-	// -------------------------------------------------------------------------
-	// Individual Metrics
-	// -------------------------------------------------------------------------
 
 	for _, jobState := range metrics.JobIndividualStates {
 		jobID := jobState.JobID
@@ -200,62 +86,66 @@ func (c *jobCollector) Collect(ch chan<- prometheus.Metric) {
 		userID := jobState.UserID
 		userName := jobState.UserName
 		for _, node := range jobState.Nodes {
-			// Individual Job State Metrics ------------------------------------
-			// Only emit when state is active (value = 1) for cardinality reasons.
-
-			// Base States
-			if jobState.BootFail == 1 {
-				ch <- prometheus.MustNewConstMetric(c.JobStateBootFail, prometheus.GaugeValue, 1, jobID, jobName, node, account, partition, userID, userName)
+			// New unified state metric with state and hold labels --------------
+			// Determine the base state name
+			var stateName string
+			// Check base states (these are mutually exclusive)
+			switch {
+			case jobState.BootFail == 1:
+				stateName = "bootfail"
+			case jobState.Cancelled == 1:
+				stateName = "cancelled"
+			case jobState.Completed == 1:
+				stateName = "completed"
+			case jobState.Deadline == 1:
+				stateName = "deadline"
+			case jobState.Failed == 1:
+				stateName = "failed"
+			case jobState.Pending == 1:
+				stateName = "pending"
+			case jobState.Preempted == 1:
+				stateName = "preempted"
+			case jobState.Running == 1:
+				stateName = "running"
+			case jobState.Suspended == 1:
+				stateName = "suspended"
+			case jobState.Timeout == 1:
+				stateName = "timeout"
+			case jobState.NodeFail == 1:
+				stateName = "nodefail"
+			case jobState.OutOfMemory == 1:
+				stateName = "outofmemory"
+			default:
+				stateName = "unknown"
 			}
-			if jobState.Cancelled == 1 {
-				ch <- prometheus.MustNewConstMetric(c.JobStateCancelled, prometheus.GaugeValue, 1, jobID, jobName, node, account, partition, userID, userName)
+			
+			// Determine hold status
+			holdStatus := "false"
+			if jobState.Hold == 1 {
+				holdStatus = "true"
 			}
-			if jobState.Completed == 1 {
-				ch <- prometheus.MustNewConstMetric(c.JobStateCompleted, prometheus.GaugeValue, 1, jobID, jobName, node, account, partition, userID, userName)
-			}
-			if jobState.Deadline == 1 {
-				ch <- prometheus.MustNewConstMetric(c.JobStateDeadline, prometheus.GaugeValue, 1, jobID, jobName, node, account, partition, userID, userName)
-			}
-			if jobState.Failed == 1 {
-				ch <- prometheus.MustNewConstMetric(c.JobStateFailed, prometheus.GaugeValue, 1, jobID, jobName, node, account, partition, userID, userName)
-			}
-			if jobState.Pending == 1 {
-				ch <- prometheus.MustNewConstMetric(c.JobStatePending, prometheus.GaugeValue, 1, jobID, jobName, node, account, partition, userID, userName)
-			}
-			if jobState.Preempted == 1 {
-				ch <- prometheus.MustNewConstMetric(c.JobStatePreempted, prometheus.GaugeValue, 1, jobID, jobName, node, account, partition, userID, userName)
-			}
-			if jobState.Running == 1 {
-				ch <- prometheus.MustNewConstMetric(c.JobStateRunning, prometheus.GaugeValue, 1, jobID, jobName, node, account, partition, userID, userName)
-			}
-			if jobState.Suspended == 1 {
-				ch <- prometheus.MustNewConstMetric(c.JobStateSuspended, prometheus.GaugeValue, 1, jobID, jobName, node, account, partition, userID, userName)
-			}
-			if jobState.Timeout == 1 {
-				ch <- prometheus.MustNewConstMetric(c.JobStateTimeout, prometheus.GaugeValue, 1, jobID, jobName, node, account, partition, userID, userName)
-			}
-			if jobState.NodeFail == 1 {
-				ch <- prometheus.MustNewConstMetric(c.JobStateNodeFail, prometheus.GaugeValue, 1, jobID, jobName, node, account, partition, userID, userName)
-			}
-			if jobState.OutOfMemory == 1 {
-				ch <- prometheus.MustNewConstMetric(c.JobStateOutOfMemory, prometheus.GaugeValue, 1, jobID, jobName, node, account, partition, userID, userName)
-			}
-			// Flag States
+			
+			ch <- prometheus.MustNewConstMetric(c.JobState, prometheus.GaugeValue, 1, jobID, jobName, node, account, partition, userID, userName, stateName, holdStatus)
+			
+			// New flag metric with concatenated flags --------------------------
+			var flags []string
 			if jobState.Completing == 1 {
-				ch <- prometheus.MustNewConstMetric(c.JobStateCompleting, prometheus.GaugeValue, 1, jobID, jobName, node, account, partition, userID, userName)
+				flags = append(flags, "completing")
 			}
 			if jobState.Configuring == 1 {
-				ch <- prometheus.MustNewConstMetric(c.JobStateConfiguring, prometheus.GaugeValue, 1, jobID, jobName, node, account, partition, userID, userName)
+				flags = append(flags, "configuring")
 			}
 			if jobState.PowerUpNode == 1 {
-				ch <- prometheus.MustNewConstMetric(c.JobStatePowerUpNode, prometheus.GaugeValue, 1, jobID, jobName, node, account, partition, userID, userName)
+				flags = append(flags, "powerupnode")
 			}
 			if jobState.StageOut == 1 {
-				ch <- prometheus.MustNewConstMetric(c.JobStateStageOut, prometheus.GaugeValue, 1, jobID, jobName, node, account, partition, userID, userName)
+				flags = append(flags, "stageout")
 			}
-			// Other States
-			if jobState.Hold == 1 {
-				ch <- prometheus.MustNewConstMetric(c.JobStateHold, prometheus.GaugeValue, 1, jobID, jobName, node, account, partition, userID, userName)
+			
+			// Only emit flag metric if there are flags
+			if len(flags) > 0 {
+				flagStr := strings.Join(flags, "+")
+				ch <- prometheus.MustNewConstMetric(c.JobFlag, prometheus.GaugeValue, 1, jobID, jobName, node, account, partition, userID, userName, flagStr)
 			}
 
 			// Individual Job Tres Metrics -------------------------------------
@@ -403,6 +293,30 @@ type JobStates struct {
 	// Other States
 	Hold uint
 }
+
+type jobStatesCollector struct {
+	// Base States
+	BootFail    *prometheus.Desc
+	Cancelled   *prometheus.Desc
+	Completed   *prometheus.Desc
+	Deadline    *prometheus.Desc
+	Failed      *prometheus.Desc
+	Pending     *prometheus.Desc
+	Preempted   *prometheus.Desc
+	Running     *prometheus.Desc
+	Suspended   *prometheus.Desc
+	Timeout     *prometheus.Desc
+	NodeFail    *prometheus.Desc
+	OutOfMemory *prometheus.Desc
+	// Flag States
+	Completing  *prometheus.Desc
+	Configuring *prometheus.Desc
+	PowerUpNode *prometheus.Desc
+	StageOut    *prometheus.Desc
+	// Other States
+	Hold *prometheus.Desc
+}
+
 
 type JobIndividualStates struct {
 	JobID     string
