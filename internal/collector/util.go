@@ -43,8 +43,10 @@ func ParseUint32NoVal(noVal *api.V0041Uint32NoValStruct) uint32 {
 	return number
 }
 
-var gpuGresRegex = regexp.MustCompile(`\bgpu:(\d+)`)
-var gpuGresUsedRegex = regexp.MustCompile(`\bgpu:[^:]*:(\d+)`)
+var (
+	gpuGresRegex     = regexp.MustCompile(`\bgpu:(\d+)`)
+	gpuGresUsedRegex = regexp.MustCompile(`\bgpu:[^:]*:(\d+)`)
+)
 
 // ParseNodeGresGpu parses GPU count from a node's gres field
 // Examples from Slurm API node response:
@@ -138,7 +140,7 @@ func parseNodeList(nodeList string) []string {
 		for _, part := range parts {
 			part = strings.TrimSpace(part)
 			if strings.Contains(part, "-") {
-				// Handle range notation like "1-3"
+				// Handle range notation like "1-3" or "001-002"
 				rangeParts := strings.Split(part, "-")
 				if len(rangeParts) == 2 {
 					start := 0
@@ -146,8 +148,19 @@ func parseNodeList(nodeList string) []string {
 					_, err1 := fmt.Sscanf(rangeParts[0], "%d", &start)
 					_, err2 := fmt.Sscanf(rangeParts[1], "%d", &end)
 					if err1 == nil && err2 == nil {
+						// Determine padding by checking the original string format
+						startPadding := len(rangeParts[0])
+						endPadding := len(rangeParts[1])
+						maxPadding := max(endPadding, startPadding)
 						for i := start; i <= end; i++ {
-							nodes = append(nodes, fmt.Sprintf("%s%d%s", prefix, i, suffix))
+							var nodeNum string
+							if maxPadding > 1 && rangeParts[0][0] == '0' {
+								// Use zero-padding if original had leading zeros
+								nodeNum = fmt.Sprintf("%0*d", maxPadding, i)
+							} else {
+								nodeNum = fmt.Sprintf("%d", i)
+							}
+							nodes = append(nodes, fmt.Sprintf("%s%s%s", prefix, nodeNum, suffix))
 						}
 					}
 				}
