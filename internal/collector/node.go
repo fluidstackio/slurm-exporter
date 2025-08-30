@@ -414,7 +414,7 @@ func calculateNodeTres(metrics *NodeTres, node types.V0041Node) {
 	metrics.CpusIdle += uint(ptr.Deref(node.AllocIdleCpus, 0))
 	// Memory (convert from MB to bytes)
 	metrics.MemoryTotal += uint(ptr.Deref(node.RealMemory, 0)) * 1024 * 1024
-	metrics.MemoryEffective += uint(ptr.Deref(node.RealMemory, 0) - ptr.Deref(node.SpecializedMemory, 0)) * 1024 * 1024
+	metrics.MemoryEffective += uint(ptr.Deref(node.RealMemory, 0)-ptr.Deref(node.SpecializedMemory, 0)) * 1024 * 1024
 	metrics.MemoryAlloc += uint(ptr.Deref(node.AllocMemory, 0)) * 1024 * 1024
 	metrics.MemoryFree += uint(ParseUint64NoVal(node.FreeMem)) * 1024 * 1024
 	// GPUs
@@ -612,7 +612,6 @@ func calculateNodeCombinedState(node types.V0041Node) *NodeCombinedState {
 	}
 	if states.Has(api.V0041NodeStateRESERVED) {
 		stateNames = append(stateNames, "reserved")
-		unavailable = 1
 	}
 	if states.Has(api.V0041NodeStateRESUME) {
 		stateNames = append(stateNames, "resume")
