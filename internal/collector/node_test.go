@@ -195,6 +195,8 @@ func Test_calculateNodeCombinedState(t *testing.T) {
 			want: &NodeCombinedState{
 				CombinedState: "idle",
 				Unavailable:   0,
+				Reason:        "",
+				User:          "",
 			},
 		},
 		{
@@ -209,6 +211,8 @@ func Test_calculateNodeCombinedState(t *testing.T) {
 			want: &NodeCombinedState{
 				CombinedState: "down",
 				Unavailable:   1,
+				Reason:        "",
+				User:          "",
 			},
 		},
 		{
@@ -224,6 +228,8 @@ func Test_calculateNodeCombinedState(t *testing.T) {
 			want: &NodeCombinedState{
 				CombinedState: "drain+mixed",
 				Unavailable:   0, // drain + mixed = available
+				Reason:        "",
+				User:          "",
 			},
 		},
 		{
@@ -239,10 +245,29 @@ func Test_calculateNodeCombinedState(t *testing.T) {
 			want: &NodeCombinedState{
 				CombinedState: "allocated+drain",
 				Unavailable:   0, // drain + allocated = available
+				Reason:        "",
+				User:          "",
 			},
 		},
 		{
-			name: "multiple states",
+			name: "idle+planned",
+			args: args{
+				node: types.V0041Node{V0041Node: api.V0041Node{
+					State: ptr.To([]api.V0041NodeState{
+						api.V0041NodeStateIDLE,
+						api.V0041NodeStatePLANNED,
+					}),
+				}},
+			},
+			want: &NodeCombinedState{
+				CombinedState: "idle+planned",
+				Unavailable:   0,
+				Reason:        "",
+				User:          "",
+			},
+		},
+		{
+			name: "idle+planned+reserved",
 			args: args{
 				node: types.V0041Node{V0041Node: api.V0041Node{
 					State: ptr.To([]api.V0041NodeState{
@@ -254,7 +279,46 @@ func Test_calculateNodeCombinedState(t *testing.T) {
 			},
 			want: &NodeCombinedState{
 				CombinedState: "idle+planned+reserved",
+				Unavailable:   0,
+				Reason:        "",
+				User:          "",
+			},
+		},
+		{
+			name: "down with reason and user",
+			args: args{
+				node: types.V0041Node{V0041Node: api.V0041Node{
+					State: ptr.To([]api.V0041NodeState{
+						api.V0041NodeStateDOWN,
+					}),
+					Reason:          ptr.To("hardware failure"),
+					ReasonSetByUser: ptr.To("admin"),
+				}},
+			},
+			want: &NodeCombinedState{
+				CombinedState: "down",
 				Unavailable:   1,
+				Reason:        "hardware failure",
+				User:          "admin",
+			},
+		},
+		{
+			name: "drain+mixed with reason",
+			args: args{
+				node: types.V0041Node{V0041Node: api.V0041Node{
+					State: ptr.To([]api.V0041NodeState{
+						api.V0041NodeStateMIXED,
+						api.V0041NodeStateDRAIN,
+					}),
+					Reason:          ptr.To("maintenance"),
+					ReasonSetByUser: ptr.To("ops"),
+				}},
+			},
+			want: &NodeCombinedState{
+				CombinedState: "drain+mixed",
+				Unavailable:   0,
+				Reason:        "maintenance",
+				User:          "ops",
 			},
 		},
 	}
@@ -474,18 +538,26 @@ func TestNodeCollector_getNodeMetrics(t *testing.T) {
 					"node0": {
 						CombinedState: "idle",
 						Unavailable:   0,
+						Reason:        "",
+						User:          "",
 					},
 					"node1": {
 						CombinedState: "allocated",
 						Unavailable:   0,
+						Reason:        "",
+						User:          "",
 					},
 					"node2": {
 						CombinedState: "allocated+drain",
 						Unavailable:   0,
+						Reason:        "",
+						User:          "",
 					},
 					"node3": {
 						CombinedState: "completing+mixed",
 						Unavailable:   0,
+						Reason:        "",
+						User:          "",
 					},
 				},
 				NodeIndividualStates: map[string]*NodeIndividualStates{
