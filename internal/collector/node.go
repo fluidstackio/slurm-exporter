@@ -209,7 +209,7 @@ func (c *nodeCollector) Collect(ch chan<- prometheus.Metric) {
 
 	// Combined Node State Metrics
 	for node, state := range metrics.NodeCombinedStates {
-		ch <- prometheus.MustNewConstMetric(c.NodeCombinedState, prometheus.GaugeValue, float64(state.Unavailable), node, state.CombinedState)
+		ch <- prometheus.MustNewConstMetric(c.NodeCombinedState, prometheus.GaugeValue, float64(state.Unavailable), node, state.CombinedState, state.Reason, state.User)
 	}
 
 	// Individual Node State Metrics - only emit when state is active (value = 1)
@@ -433,6 +433,8 @@ type NodeCollectorMetrics struct {
 type NodeCombinedState struct {
 	CombinedState string
 	Unavailable   int
+	Reason        string
+	User          string
 }
 
 type NodeIndividualStates struct {
@@ -637,6 +639,8 @@ func calculateNodeCombinedState(node types.V0041Node) *NodeCombinedState {
 	return &NodeCombinedState{
 		CombinedState: combinedState,
 		Unavailable:   unavailable,
+		Reason:        ptr.Deref(node.Reason, ""),
+		User:          ptr.Deref(node.ReasonSetByUser, ""),
 	}
 }
 
