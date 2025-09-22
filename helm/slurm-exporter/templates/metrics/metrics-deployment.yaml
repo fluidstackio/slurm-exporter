@@ -21,7 +21,7 @@ spec:
     matchLabels:
       {{- include "slurm-exporter.selectorLabels" . | nindent 6 }}
   strategy:
-    type: Recreate
+    {{- toYaml .Values.exporter.strategy | nindent 4 }}
   template:
     metadata:
       annotations:
@@ -72,8 +72,11 @@ spec:
             tcpSocket:
               port: metrics
           readinessProbe:
-            tcpSocket:
+            httpGet:
+              path: /metrics
               port: metrics
+            initialDelaySeconds: 5
+            periodSeconds: 10
           env:
           - name: SLURM_JWT
             valueFrom:
