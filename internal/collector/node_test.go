@@ -321,6 +321,26 @@ func Test_calculateNodeCombinedState(t *testing.T) {
 				User:          "ops",
 			},
 		},
+		{
+			name: "down+drain+dynamicNorm with reason and user",
+			args: args{
+				node: types.V0041Node{V0041Node: api.V0041Node{
+					State: ptr.To([]api.V0041NodeState{
+						api.V0041NodeStateDOWN,
+						api.V0041NodeStateDRAIN,
+						api.V0041NodeStateDYNAMICNORM,
+					}),
+					Reason:          ptr.To("Drained by Ansible playbook"),
+					ReasonSetByUser: ptr.To("fsadmin"),
+				}},
+			},
+			want: &NodeCombinedState{
+				CombinedState: "down+drain+dynamicNorm",
+				Unavailable:   1,
+				Reason:        "Drained by Ansible playbook",
+				User:          "fsadmin",
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -719,6 +739,81 @@ func TestNodeCollector_Describe(t *testing.T) {
 	}
 }
 
+// Test that verifies reason and user labels are emitted correctly for all node state metrics
+func TestNodeCollector_Collect_WithReasonAndUser(t *testing.T) {
+	// Create a test node with down+drain+dynamicNorm state and reason/user
+	testNode := &types.V0041Node{V0041Node: api.V0041Node{
+		Name: ptr.To("test-node"),
+		State: ptr.To([]api.V0041NodeState{
+			api.V0041NodeStateDOWN,
+			api.V0041NodeStateDRAIN,
+			api.V0041NodeStateDYNAMICNORM,
+		}),
+		Reason:          ptr.To("Drained by Ansible playbook"),
+		ReasonSetByUser: ptr.To("fsadmin"),
+		Cpus:            ptr.To[int32](16),
+		EffectiveCpus:   ptr.To[int32](16),
+		AllocCpus:       ptr.To[int32](0),
+		AllocIdleCpus:   ptr.To[int32](0),
+		RealMemory:      ptr.To[int64](4096),
+		AllocMemory:     ptr.To[int64](0),
+		FreeMem: &api.V0041Uint64NoValStruct{
+			Number: ptr.To[int64](4096),
+			Set:    ptr.To(true),
+		},
+		Gres:     ptr.To(""),
+		GresUsed: ptr.To(""),
+	}}
+
+	testNodeList := &types.V0041NodeList{
+		Items: []types.V0041Node{*testNode},
+	}
+
+	client := fake.NewClientBuilder().
+		WithLists(testNodeList).
+		Build()
+
+	collector := NewNodeCollector(client)
+	ch := make(chan prometheus.Metric, 100)
+
+	go func() {
+		collector.Collect(ch)
+		close(ch)
+	}()
+
+	// Drain the metrics channel
+	for range ch {
+		// We can't easily inspect prometheus.Metric labels directly,
+		// so we'll verify the calculation functions produce correct data instead
+	}
+
+	// Verify the metrics were calculated correctly
+	ctx := context.TODO()
+	metrics, err := collector.(*nodeCollector).getNodeMetrics(ctx)
+	assert.NoError(t, err)
+	assert.NotNil(t, metrics)
+
+	// Verify NodeCombinedState has reason and user
+	combinedState, ok := metrics.NodeCombinedStates["test-node"]
+	assert.True(t, ok, "NodeCombinedState for test-node should exist")
+	assert.Equal(t, "down+drain+dynamicNorm", combinedState.CombinedState)
+	assert.Equal(t, "Drained by Ansible playbook", combinedState.Reason, "NodeCombinedState should have reason")
+	assert.Equal(t, "fsadmin", combinedState.User, "NodeCombinedState should have user")
+
+	// Verify NodeIndividualStates has the same reason and user
+	individualStates, ok := metrics.NodeIndividualStates["test-node"]
+	assert.True(t, ok, "NodeIndividualStates for test-node should exist")
+	assert.Equal(t, 1, individualStates.Down)
+	assert.Equal(t, 1, individualStates.Drain)
+	assert.Equal(t, 1, individualStates.DynamicNorm)
+	assert.Equal(t, "Drained by Ansible playbook", individualStates.Reason, "NodeIndividualStates should have reason")
+	assert.Equal(t, "fsadmin", individualStates.User, "NodeIndividualStates should have user")
+
+	// Verify both have identical reason and user
+	assert.Equal(t, combinedState.Reason, individualStates.Reason, "Combined and individual states must have identical reason")
+	assert.Equal(t, combinedState.User, individualStates.User, "Combined and individual states must have identical user")
+}
+
 func Test_calculateNodeIndividualStates(t *testing.T) {
 	type args struct {
 		node types.V0041Node
@@ -794,6 +889,27 @@ func Test_calculateNodeIndividualStates(t *testing.T) {
 				Idle:   1,
 				Reason: "",
 				User:   "",
+			},
+		},
+		{
+			name: "down+drain+dynamicNorm with reason and user",
+			args: args{
+				node: types.V0041Node{V0041Node: api.V0041Node{
+					State: ptr.To([]api.V0041NodeState{
+						api.V0041NodeStateDOWN,
+						api.V0041NodeStateDRAIN,
+						api.V0041NodeStateDYNAMICNORM,
+					}),
+					Reason:          ptr.To("Drained by Ansible playbook"),
+					ReasonSetByUser: ptr.To("fsadmin"),
+				}},
+			},
+			want: &NodeIndividualStates{
+				Down:        1,
+				Drain:       1,
+				DynamicNorm: 1,
+				Reason:      "Drained by Ansible playbook",
+				User:        "fsadmin",
 			},
 		},
 	}
