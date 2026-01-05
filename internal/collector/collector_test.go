@@ -357,6 +357,29 @@ var (
 		ServerThreadCount: ptr.To[int32](7),
 
 		DbdAgentQueueSize: ptr.To[int32](8),
+
+		RpcsByUser: &api.V0041StatsMsgRpcsByUser{
+			{
+				UserId:    0,
+				User:      "root",
+				Count:     100,
+				TotalTime: 5000,
+				AverageTime: api.V0041Uint64NoValStruct{
+					Number: ptr.To[int64](50),
+					Set:    ptr.To(true),
+				},
+			},
+			{
+				UserId:    1000,
+				User:      "testuser",
+				Count:     50,
+				TotalTime: 2500,
+				AverageTime: api.V0041Uint64NoValStruct{
+					Number: ptr.To[int64](50),
+					Set:    ptr.To(true),
+				},
+			},
+		},
 	}}
 )
 

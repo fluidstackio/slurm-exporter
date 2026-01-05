@@ -113,6 +113,23 @@ func TestSchedulerCollector_getSchedulerMetrics(t *testing.T) {
 				ServerThreadCount: 7,
 
 				DbdAgentQueueSize: 8,
+
+				RpcsByUser: []RpcByUserMetric{
+					{
+						UserId:      "0",
+						UserName:    "root",
+						Count:       100,
+						TotalTime:   5000,
+						AverageTime: 50,
+					},
+					{
+						UserId:      "1000",
+						UserName:    "testuser",
+						Count:       50,
+						TotalTime:   2500,
+						AverageTime: 50,
+					},
+				},
 			},
 		},
 		{
