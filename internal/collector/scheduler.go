@@ -5,6 +5,7 @@ package collector
 
 import (
 	"context"
+	"strconv"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"k8s.io/utils/ptr"
@@ -85,6 +86,11 @@ func NewSchedulerCollector(slurmClient client.Client) prometheus.Collector {
 		},
 		ServerThreadCount: prometheus.NewDesc("slurm_scheduler_thread_total", "Number of current active slurmctld threads", nil, nil),
 		DbdAgentQueueSize: prometheus.NewDesc("slurm_scheduler_dbdagentqueue_total", "Number of messages for SlurmDBD that are queued", nil, nil),
+		rpcByUserStats: rpcByUserStats{
+			RpcCount:       prometheus.NewDesc("slurm_rpc_by_user_count", "Number of RPCs received by user", rpcUserLabels, nil),
+			RpcTotalTime:   prometheus.NewDesc("slurm_rpc_by_user_total_time_seconds", "Total time spent processing RPCs by user in seconds", rpcUserLabels, nil),
+			RpcAverageTime: prometheus.NewDesc("slurm_rpc_by_user_average_time_seconds", "Average time per RPC by user in seconds", rpcUserLabels, nil),
+		},
 	}
 }
 
@@ -95,6 +101,7 @@ type schedulerCollector struct {
 	bfSchedulerStats
 	jobStats
 	agentStats
+	rpcByUserStats
 	ServerThreadCount *prometheus.Desc
 	DbdAgentQueueSize *prometheus.Desc
 }
@@ -165,6 +172,12 @@ type agentStats struct {
 	AgentCount       *prometheus.Desc
 	AgentQueueSize   *prometheus.Desc
 	AgentThreadCount *prometheus.Desc
+}
+
+type rpcByUserStats struct {
+	RpcCount       *prometheus.Desc
+	RpcTotalTime   *prometheus.Desc
+	RpcAverageTime *prometheus.Desc
 }
 
 func (c *schedulerCollector) Describe(ch chan<- *prometheus.Desc) {
@@ -250,6 +263,12 @@ func (c *schedulerCollector) Collect(ch chan<- prometheus.Metric) {
 	// Other
 	ch <- prometheus.MustNewConstMetric(c.ServerThreadCount, prometheus.GaugeValue, float64(metrics.ServerThreadCount))
 	ch <- prometheus.MustNewConstMetric(c.DbdAgentQueueSize, prometheus.GaugeValue, float64(metrics.DbdAgentQueueSize))
+	// RPCs by User
+	for _, rpcUser := range metrics.RpcsByUser {
+		ch <- prometheus.MustNewConstMetric(c.RpcCount, prometheus.GaugeValue, float64(rpcUser.Count), rpcUser.UserId, rpcUser.UserName)
+		ch <- prometheus.MustNewConstMetric(c.RpcTotalTime, prometheus.GaugeValue, float64(rpcUser.TotalTime), rpcUser.UserId, rpcUser.UserName)
+		ch <- prometheus.MustNewConstMetric(c.RpcAverageTime, prometheus.GaugeValue, float64(rpcUser.AverageTime), rpcUser.UserId, rpcUser.UserName)
+	}
 }
 
 func (c *schedulerCollector) getSchedulerMetrics(ctx context.Context) (*SchedulerMetrics, error) {
@@ -342,6 +361,18 @@ func calculateSchedulerStats(metrics *SchedulerMetrics, stats types.V0041Stats) 
 	metrics.ServerThreadCount = ptr.Deref(stats.ServerThreadCount, 0)
 
 	metrics.DbdAgentQueueSize = ptr.Deref(stats.DbdAgentQueueSize, 0)
+
+	if stats.RpcsByUser != nil {
+		for _, rpcUser := range *stats.RpcsByUser {
+			metrics.RpcsByUser = append(metrics.RpcsByUser, RpcByUserMetric{
+				UserId:      strconv.Itoa(int(rpcUser.UserId)),
+				UserName:    rpcUser.User,
+				Count:       rpcUser.Count,
+				TotalTime:   rpcUser.TotalTime,
+				AverageTime: ParseUint64NoVal(&rpcUser.AverageTime),
+			})
+		}
+	}
 }
 
 type SchedulerMetrics struct {
@@ -396,6 +427,8 @@ type SchedulerMetrics struct {
 	ServerThreadCount int32
 
 	DbdAgentQueueSize int32
+
+	RpcsByUser []RpcByUserMetric
 }
 
 type ScheduleExitFields struct {
@@ -414,4 +447,12 @@ type BfExitFields struct {
 	BfNodeSpaceSize int32
 	EndJobQueue     int32
 	StateChanged    int32
+}
+
+type RpcByUserMetric struct {
+	UserId      string
+	UserName    string
+	Count       int32
+	TotalTime   int64
+	AverageTime uint64
 }

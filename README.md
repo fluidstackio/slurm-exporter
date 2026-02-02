@@ -12,6 +12,10 @@
 [Prometheus] collector and exporter of [Slurm] cluster metrics. A [Slinky]
 project.
 
+## API Reference
+
+https://slurm.schedmd.com/archive/slurm-24.05.6/rest_api.html
+
 ## Table of Contents
 
 <!-- mdformat-toc start --slug=github --no-anchors --maxlevel=6 --minlevel=1 -->
