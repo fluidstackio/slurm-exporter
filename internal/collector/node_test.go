@@ -472,9 +472,8 @@ func TestNodeCollector_getNodeMetrics(t *testing.T) {
 				ctx: context.TODO(),
 			},
 			want: &NodeCollectorMetrics{
-				NodeTresPer:          map[string]*NodeTres{},
-				NodeCombinedStates:   map[string]*NodeCombinedState{},
-				NodeIndividualStates: map[string]*NodeIndividualStates{},
+				NodeTresPer:        map[string]*NodeTres{},
+				NodeCombinedStates: map[string]*NodeCombinedState{},
 			},
 		},
 		{
@@ -578,30 +577,6 @@ func TestNodeCollector_getNodeMetrics(t *testing.T) {
 						Unavailable:   0,
 						Reason:        "",
 						User:          "",
-					},
-				},
-				NodeIndividualStates: map[string]*NodeIndividualStates{
-					"node0": {
-						Idle:   1,
-						Reason: "",
-						User:   "",
-					},
-					"node1": {
-						Allocated: 1,
-						Reason:    "",
-						User:      "",
-					},
-					"node2": {
-						Allocated: 1,
-						Drain:     1,
-						Reason:    "",
-						User:      "",
-					},
-					"node3": {
-						Completing: 1,
-						Mixed:      1,
-						Reason:     "",
-						User:       "",
 					},
 				},
 			},
@@ -799,126 +774,5 @@ func TestNodeCollector_Collect_WithReasonAndUser(t *testing.T) {
 	assert.Equal(t, "down+drain+dynamicNorm", combinedState.CombinedState)
 	assert.Equal(t, "Drained by Ansible playbook", combinedState.Reason, "NodeCombinedState should have reason")
 	assert.Equal(t, "fsadmin", combinedState.User, "NodeCombinedState should have user")
-
-	// Verify NodeIndividualStates has the same reason and user
-	individualStates, ok := metrics.NodeIndividualStates["test-node"]
-	assert.True(t, ok, "NodeIndividualStates for test-node should exist")
-	assert.Equal(t, 1, individualStates.Down)
-	assert.Equal(t, 1, individualStates.Drain)
-	assert.Equal(t, 1, individualStates.DynamicNorm)
-	assert.Equal(t, "Drained by Ansible playbook", individualStates.Reason, "NodeIndividualStates should have reason")
-	assert.Equal(t, "fsadmin", individualStates.User, "NodeIndividualStates should have user")
-
-	// Verify both have identical reason and user
-	assert.Equal(t, combinedState.Reason, individualStates.Reason, "Combined and individual states must have identical reason")
-	assert.Equal(t, combinedState.User, individualStates.User, "Combined and individual states must have identical user")
 }
 
-func Test_calculateNodeIndividualStates(t *testing.T) {
-	type args struct {
-		node types.V0041Node
-	}
-	tests := []struct {
-		name string
-		args args
-		want *NodeIndividualStates
-	}{
-		{
-			name: "down node with reason and user",
-			args: args{
-				node: types.V0041Node{V0041Node: api.V0041Node{
-					State: ptr.To([]api.V0041NodeState{
-						api.V0041NodeStateDOWN,
-					}),
-					Reason:          ptr.To("hardware failure"),
-					ReasonSetByUser: ptr.To("admin"),
-				}},
-			},
-			want: &NodeIndividualStates{
-				Down:   1,
-				Reason: "hardware failure",
-				User:   "admin",
-			},
-		},
-		{
-			name: "drain node with reason and user",
-			args: args{
-				node: types.V0041Node{V0041Node: api.V0041Node{
-					State: ptr.To([]api.V0041NodeState{
-						api.V0041NodeStateALLOCATED,
-						api.V0041NodeStateDRAIN,
-					}),
-					Reason:          ptr.To("maintenance scheduled"),
-					ReasonSetByUser: ptr.To("ops-team"),
-				}},
-			},
-			want: &NodeIndividualStates{
-				Allocated: 1,
-				Drain:     1,
-				Reason:    "maintenance scheduled",
-				User:      "ops-team",
-			},
-		},
-		{
-			name: "maintenance node with reason and user",
-			args: args{
-				node: types.V0041Node{V0041Node: api.V0041Node{
-					State: ptr.To([]api.V0041NodeState{
-						api.V0041NodeStateMAINTENANCE,
-					}),
-					Reason:          ptr.To("OS upgrade"),
-					ReasonSetByUser: ptr.To("sysadmin"),
-				}},
-			},
-			want: &NodeIndividualStates{
-				Maintenance: 1,
-				Reason:      "OS upgrade",
-				User:        "sysadmin",
-			},
-		},
-		{
-			name: "idle node with no reason",
-			args: args{
-				node: types.V0041Node{V0041Node: api.V0041Node{
-					State: ptr.To([]api.V0041NodeState{
-						api.V0041NodeStateIDLE,
-					}),
-				}},
-			},
-			want: &NodeIndividualStates{
-				Idle:   1,
-				Reason: "",
-				User:   "",
-			},
-		},
-		{
-			name: "down+drain+dynamicNorm with reason and user",
-			args: args{
-				node: types.V0041Node{V0041Node: api.V0041Node{
-					State: ptr.To([]api.V0041NodeState{
-						api.V0041NodeStateDOWN,
-						api.V0041NodeStateDRAIN,
-						api.V0041NodeStateDYNAMICNORM,
-					}),
-					Reason:          ptr.To("Drained by Ansible playbook"),
-					ReasonSetByUser: ptr.To("fsadmin"),
-				}},
-			},
-			want: &NodeIndividualStates{
-				Down:        1,
-				Drain:       1,
-				DynamicNorm: 1,
-				Reason:      "Drained by Ansible playbook",
-				User:        "fsadmin",
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := calculateNodeIndividualStates(tt.args.node)
-			if diff := cmp.Diff(tt.want, got); diff != "" {
-				t.Errorf("calculateNodeIndividualStates() = (-want,+got):\n%s", diff)
-			}
-		})
-	}
-}
